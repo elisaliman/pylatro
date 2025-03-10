@@ -47,8 +47,6 @@ class Card(pygame.sprite.Sprite):
             screen.blit(trans_surf, (shadow.x, shadow.y))
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
-
-
     def is_clicked(self, pos: tuple[int, int]) -> bool:
         """
         Checks if card is clicked

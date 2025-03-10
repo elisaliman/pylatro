@@ -13,7 +13,6 @@ def get_sprite(suit: Suit, num: Rank) -> pygame.surface.Surface:
     sheet = sprite_sheet
     row = suit.value
     col = num.value
-    print(row, col)
     try:
         x = col * FRAME_WIDTH
         y = row * FRAME_HEIGHT

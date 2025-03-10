@@ -2,66 +2,48 @@ import pygame
 import sys
 from card import Card, CardGroup
 from enums import Suit, Rank
-import random
-
-def generate_deck(shuffle: bool=False) -> list[Card]:
-    """
-    Creates a standard deck of cards
-
-    Args:
-        shuffle (bool, optional): True to shuffle deck. Defaults to False
-    """
-
-    deck = []
-    x = 0
-    y = 600
-    for suit in Suit:
-        x += 200
-        for rank in Rank:
-            y -= 30
-            card = Card(suit, rank, (x, y))
-            deck.append(card)
-        y = 600
-    if shuffle:
-        random.shuffle(deck)
-    return deck
+from states.statebase import StateBase
+from states.title import Title
 
 class Game():
-
+    deck: list[Card]
     cards: CardGroup
     held_card: Card | None
+    state_stack: list[StateBase]
+    state: StateBase
 
     def __init__(self, screen: pygame.surface.Surface):
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.done = False
-        self.cards = CardGroup()
-        deck = generate_deck()
-        self.cards.add(deck)
-        self.held_card = None
+        self.state_stack = [Title(self)]
+        self.state = self.state_stack[-1]
+
+    def run(self):
+        while not self.done:
+            self.event_loop()
+            self.draw()
+            pygame.display.flip()
 
     def event_loop(self):
-        while not self.done:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.quit()
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    for card in self.cards:
-                        if card.is_clicked(event.pos):
-                            self.held_card = card
-                            self.cards.move_to_top(card)
-                if event.type == pygame.MOUSEBUTTONUP:
-                    self.held_card = None
-            if self.held_card:
-                self.held_card.update()
-            self.draw()
+        """
+        Main event loop. Runs current state's event handler
+        """
+        for event in pygame.event.get():
+            self.state.handle_event(event)
 
     def draw(self):
-        self.screen.fill("darkgreen")
-        self.cards.draw(self.screen)
-        if self.held_card:
-            self.held_card.draw(self.screen, True)
-        pygame.display.flip()
+        self.state.draw(self.screen)
+
+    # def back_state(self):
+    #     """
+    #     Flips game to next state in the state stack
+    #     """
+    #     self.state.done = False
+    #     self.state_name = self.state_stack.pop()
+    #     ctx = self.state.ctx
+    #     self.state = self.state_map[self.state_name]
+    #     self.state.startup(ctx)
 
     def quit(self) -> None:
         """
