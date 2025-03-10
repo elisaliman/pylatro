@@ -9,7 +9,7 @@ class Card(pygame.sprite.Sprite):
     suit: Suit
     num: Rank
 
-    def __init__(self, suit: Suit, num: Rank, x, y):
+    def __init__(self, suit: Suit, num: Rank, pos: tuple[int, int]):
         super().__init__()
         self.suit = suit
         self.num = num
@@ -18,18 +18,20 @@ class Card(pygame.sprite.Sprite):
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
         card_image = pygame.Rect(0, 0, wid, hei)
         pygame.draw.rect(self.image, pygame.Color("grey90"), card_image, border_radius=7)
+        pygame.draw.rect(self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7)
         self.image.blit(get_sprite(self.suit, self.num), (0, 0))
         self.rect = self.image.get_rect()
-        self.rect.center = (x, y)
+        self.rect.center = pos
 
-    def draw(self, screen: pygame.surface.Surface, is_held: bool=False) -> None:
+    def draw(self, screen: pygame.surface.Surface, is_held: bool=True) -> None:
         """
         Draws the card, also draws its shadow if its held. (really intended to
         only ever be used when card is held)
 
         Args:
             screen (pygame.surface.Surface): screen to draw on
-            is_held (bool): Optional, true if card is currently held
+            is_held (bool, optional): True if card is currently held. Defaults
+                to True
         """
         if is_held:
             shadow = self.rect.copy()

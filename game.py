@@ -2,6 +2,29 @@ import pygame
 import sys
 from card import Card, CardGroup
 from enums import Suit, Rank
+import random
+
+def generate_deck(shuffle: bool=False) -> list[Card]:
+    """
+    Creates a standard deck of cards
+
+    Args:
+        shuffle (bool, optional): True to shuffle deck. Defaults to False
+    """
+
+    deck = []
+    x = 0
+    y = 600
+    for suit in Suit:
+        x += 200
+        for rank in Rank:
+            y -= 30
+            card = Card(suit, rank, (x, y))
+            deck.append(card)
+        y = 600
+    if shuffle:
+        random.shuffle(deck)
+    return deck
 
 class Game():
 
@@ -13,9 +36,8 @@ class Game():
         self.clock = pygame.time.Clock()
         self.done = False
         self.cards = CardGroup()
-        card1 = Card(Suit.SPADE, Rank.TWO, 50, 50)
-        card2 = Card(Suit.DIAMOND, Rank.KING, 10, 50)
-        self.cards.add(card1, card2)
+        deck = generate_deck()
+        self.cards.add(deck)
         self.held_card = None
 
     def event_loop(self):
