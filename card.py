@@ -61,6 +61,14 @@ class Card(pygame.sprite.Sprite):
 
 
     def smooth_animation(self, dt: float) -> tuple[int, int]:
+        """
+        Smooths movement of card from its location to the mouse
+
+        Args:
+            dt (float): delta time
+        """
+        # https://stackoverflow.com/questions/64087982/how-to-make-smooth-movement-in-pygame
+        # used above thread to create the smooth animation
         Vector2 = pygame.math.Vector2
         mousex, mousey = pygame.mouse.get_pos()
         minimum_distance = 5
