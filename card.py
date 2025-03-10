@@ -7,19 +7,19 @@ class Card(pygame.sprite.Sprite):
     image: pygame.Surface
     rect: pygame.Rect
     suit: Suit
-    num: Rank
+    rank: Rank
 
-    def __init__(self, suit: Suit, num: Rank, pos: tuple[int, int]):
+    def __init__(self, suit: Suit, rank: Rank, pos: tuple[int, int]):
         super().__init__()
         self.suit = suit
-        self.num = num
+        self.rank = rank
         self.image = pygame.Surface((71, 95), pygame.SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
         card_image = pygame.Rect(0, 0, wid, hei)
         pygame.draw.rect(self.image, pygame.Color("grey90"), card_image, border_radius=7)
         pygame.draw.rect(self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7)
-        self.image.blit(get_sprite(self.suit, self.num), (0, 0))
+        self.image.blit(get_sprite(self.suit, self.rank), (0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
@@ -33,18 +33,18 @@ class Card(pygame.sprite.Sprite):
             is_held (bool, optional): True if card is currently held. Defaults
                 to True
         """
-        if is_held:
-            shadow = self.rect.copy()
-            shadow.y += 10
-            shadow.x += 10
-            trans_surf = pygame.Surface((shadow.width, shadow.height), pygame.SRCALPHA)
-            pygame.draw.rect(
-                trans_surf,
-                (0, 0, 0, 150),
-                (0, 0, shadow.width, shadow.height),
-                border_radius=10,
-            )
-            screen.blit(trans_surf, (shadow.x, shadow.y))
+        # if is_held:
+        #     shadow = self.rect.copy()
+        #     shadow.y += 10
+        #     shadow.x += 10
+        #     trans_surf = pygame.Surface((shadow.width, shadow.height), pygame.SRCALPHA)
+        #     pygame.draw.rect(
+        #         trans_surf,
+        #         (0, 0, 0, 150),
+        #         (0, 0, shadow.width, shadow.height),
+        #         border_radius=10,
+        #     )
+        #     screen.blit(trans_surf, (shadow.x, shadow.y))
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
     def is_clicked(self, pos: tuple[int, int]) -> bool:
@@ -56,8 +56,27 @@ class Card(pygame.sprite.Sprite):
         """
         return self.rect.collidepoint(pos)
 
-    def update(self):
-        self.rect.center = pygame.mouse.get_pos()
+    def update(self, dt: float) -> None:
+        self.rect.center = self.smooth_animation(dt)
+
+
+    def smooth_animation(self, dt: float) -> tuple[int, int]:
+        Vector2 = pygame.math.Vector2
+        mousex, mousey = pygame.mouse.get_pos()
+        minimum_distance = 5
+        maximum_distance = 10000
+        target_vector = Vector2(mousex, mousey)
+        follower_vector = Vector2(self.rect.centerx, self.rect.centery)
+        new_follower_vector = Vector2(self.rect.centerx, self.rect.centery)
+
+        distance = follower_vector.distance_to(target_vector)
+        if distance > minimum_distance:
+            direction_vector = (target_vector - follower_vector) / distance
+            min_step = max(0, distance - maximum_distance)
+            max_step = distance - minimum_distance
+            step_distance = (min_step + (max_step - min_step) * 10) * dt
+            new_follower_vector = follower_vector + direction_vector * step_distance
+        return (int(new_follower_vector.x), int(new_follower_vector.y))
 
 class CardGroup(pygame.sprite.Group):
     """

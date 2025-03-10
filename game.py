@@ -1,16 +1,22 @@
 import pygame
 import sys
+import time
 from card import Card, CardGroup
-from enums import Suit, Rank
-from states.statebase import StateBase
 from states.title import Title
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from states.statebase import StateBase  # Import only for type checking
 
 class Game():
-    deck: list[Card]
-    cards: CardGroup
+    deck: list['Card']
+    cards: 'CardGroup'
     held_card: Card | None
-    state_stack: list[StateBase]
-    state: StateBase
+    state_stack: list['StateBase']
+    state: 'StateBase'
+    dx: float
+    prev_time: float
+    fps: int
 
     def __init__(self, screen: pygame.surface.Surface):
         self.screen = screen
@@ -18,10 +24,13 @@ class Game():
         self.done = False
         self.state_stack = [Title(self)]
         self.state = self.state_stack[-1]
+        self.prev_time = 0.0
+        self.fps = 60
 
     def run(self):
         while not self.done:
             self.event_loop()
+            self.update()
             self.draw()
             pygame.display.flip()
 
@@ -32,18 +41,16 @@ class Game():
         for event in pygame.event.get():
             self.state.handle_event(event)
 
+    def update(self) -> None:
+        self.clock.tick(self.fps)
+        now = time.time()
+        dt = now - self.prev_time
+        self.prev_time = now
+        self.state.update(dt)
+
+
     def draw(self):
         self.state.draw(self.screen)
-
-    # def back_state(self):
-    #     """
-    #     Flips game to next state in the state stack
-    #     """
-    #     self.state.done = False
-    #     self.state_name = self.state_stack.pop()
-    #     ctx = self.state.ctx
-    #     self.state = self.state_map[self.state_name]
-    #     self.state.startup(ctx)
 
     def quit(self) -> None:
         """

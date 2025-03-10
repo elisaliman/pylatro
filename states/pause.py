@@ -1,5 +1,4 @@
 import pygame
-import sys
 from states.statebase import StateBase
 
 class Pause(StateBase):
@@ -31,3 +30,4 @@ class Pause(StateBase):
         screen.fill("darkgreen")
         self.prev_state.draw(screen)
         screen.blit(self.shadow, (0, 0))
+        pygame.display.flip()

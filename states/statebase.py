@@ -10,10 +10,8 @@ class StateBase(ABC):
     def __init__(self, game: 'Game'):
         self.game = game
         self.prev_state = None
-        self.done = False
-        self.quit = False
-        self.screen_rect = pygame.display.get_surface().get_rect()
-        self.font = pygame.font.Font(None, 24)
+        self.font24 = pygame.font.Font(None, 24)
+        self.font300 = pygame.font.Font(None, 300)
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -28,6 +26,12 @@ class StateBase(ABC):
         Draws screen for current state
         """
         raise NotImplementedError
+
+    def update(self, dt: float) -> None:
+        """
+        Updates dt in order to run game independent of fps
+        """
+        pass
 
     def enter_state(self) -> None:
         if len(self.game.state_stack) > 1:

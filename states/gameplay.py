@@ -1,5 +1,4 @@
 import pygame
-import sys
 from card import Card, CardGroup
 from enums import Suit, Rank
 import random
@@ -60,11 +59,14 @@ class Gameplay(StateBase):
                 Pause(self.game).enter_state()
             if event.key == pygame.K_UP:
                 self.exit_state()
+
+    def update(self, dt: float) -> None:
         if self.held_card:
-            self.held_card.update()
+            self.held_card.update(dt)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
         self.cards.draw(screen)
         if self.held_card:
             self.held_card.draw(screen, True)
+        pygame.display.flip()
