@@ -1,43 +1,62 @@
 import pygame
 from card import Card, CardGroup
 from enums import Suit, Rank
-import random
+from gameplay_logic import CardData, GameplayLogic
 from states.statebase import StateBase
 from states.pause import Pause
 
-def generate_deck(shuffle: bool=False) -> list[Card]:
-    """
-    Creates a standard deck of cards
+# use for testing cards
+# def generate_deck(deck_data: list[CardData]) -> list[Card]:
+#     deck = []
+#     x = 100
+#     y = 100
+#     for card_data in deck_data:
+#         suit = card_data.get_suit
+#         rank = card_data.get_rank
+#         card = Card(suit, rank, (x, y))
+#         deck.append(card)
+#         y += 30
+#         if y % 490 == 0:
+#             x += 200
+#             y = 100
+#     return deck
 
-    Args:
-        shuffle (bool, optional): True to shuffle deck. Defaults to False
-    """
-
+def generate_deck(deck_data: list[CardData]) -> list[Card]:
     deck = []
-    x = 0
-    y = 600
-    for suit in Suit:
-        x += 200
-        for rank in Rank:
-            y -= 30
-            card = Card(suit, rank, (x, y))
-            deck.append(card)
-        y = 600
-    if shuffle:
-        random.shuffle(deck)
+    for card_data in deck_data:
+        suit = card_data.get_suit
+        rank = card_data.get_rank
+        card = Card(suit, rank, (400, 400))
+        deck.append(card)
     return deck
 
+
 class Gameplay(StateBase):
+    game_logic: GameplayLogic
     deck: list[Card]
-    cards: CardGroup
+    hand: CardGroup
     held_card: Card | None
 
     def __init__(self, game):
         super().__init__(game)
-        self.cards = CardGroup()
-        self.deck = generate_deck()
-        self.cards.add(self.deck)
+        self.game_logic = GameplayLogic()
+        self.hand = CardGroup()
         self.held_card = None
+        self.startup()
+
+    def startup(self) -> None:
+        """Intended to be run once at state start"""
+        self.game_logic.deal_to_hand()
+        self.deal_to_hand()
+
+    def deal_to_hand(self) -> None:
+        """
+        Deals cards from deck into hand
+        """
+        for card_data in self.game_logic.hand:
+            card = Card(card_data.get_suit, card_data.get_rank, (400, 400)) # pos should be where deck is in game
+            card.toggle_show()
+            self.hand.add(card)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -47,10 +66,10 @@ class Gameplay(StateBase):
             self.game.quit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             # reversed to scan cards from top layer to bottom
-            for card in self.cards.sprites()[::-1]:
+            for card in self.hand.sprites()[::-1]:
                 if card.is_clicked(event.pos):
                     self.held_card = card
-                    self.cards.move_to_top(card)
+                    self.hand.move_to_top(card)
                     break
         if event.type == pygame.MOUSEBUTTONUP:
             self.held_card = None
@@ -62,11 +81,15 @@ class Gameplay(StateBase):
 
     def update(self, dt: float) -> None:
         if self.held_card:
-            self.held_card.update(dt)
+            self.held_card.update(dt, pygame.mouse.get_pos())
+        for card in self.hand.sprites():
+            if card is not self.held_card:
+                card.update(dt, (100, 100)) # pos should be propper position in hand table
+
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
-        self.cards.draw(screen)
+        self.hand.draw(screen)
         if self.held_card:
             self.held_card.draw(screen, True)
         pygame.display.flip()

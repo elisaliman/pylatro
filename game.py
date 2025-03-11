@@ -28,6 +28,9 @@ class Game():
         self.fps = 60
 
     def run(self):
+        """
+        Main game loop
+        """
         while not self.done:
             self.event_loop()
             self.update()
@@ -36,12 +39,16 @@ class Game():
 
     def event_loop(self):
         """
-        Main event loop. Runs current state's event handler
+        Runs current state's event handler
         """
         for event in pygame.event.get():
             self.state.handle_event(event)
 
     def update(self) -> None:
+        """
+        Updates game state based on time passed to handle animations, movements,
+        etc. in order to be independent from fps
+        """
         self.clock.tick(self.fps)
         now = time.time()
         dt = now - self.prev_time
@@ -50,6 +57,9 @@ class Game():
 
 
     def draw(self):
+        """
+        Draws the current game state
+        """
         self.state.draw(self.screen)
 
     def quit(self) -> None:
