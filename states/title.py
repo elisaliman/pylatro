@@ -9,7 +9,7 @@ class Title(StateBase):
     def __init__(self, game):
         super().__init__(game)
         self.screen_center = game.screen.get_rect().center
-        self.title = self.font300.render("Balatro", True, "blue")
+        self.title = self.font200.render("Balatro", True, "blue")
         self.rect = pygame.Rect(0, 0, 800, 400)
         self.rect.center = self.screen_center
 

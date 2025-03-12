@@ -1,7 +1,10 @@
 import pygame
 from enums import Suit, Rank
 import assets.balatro_cards_data as assets
+from assets.balatro_cards_data import CARD_WID, CARD_HEI
 
+CARD_WID = 71
+CARD_HEI = 95
 
 class Card(pygame.sprite.Sprite):
     image: pygame.Surface
@@ -11,23 +14,27 @@ class Card(pygame.sprite.Sprite):
     front: pygame.surface.Surface
     back: pygame.surface.Surface
     shown: bool
+    _target_pos: tuple[int, int]
+    follow_mouse: bool
 
-    def __init__(self, suit: Suit, rank: Rank, pos: tuple[int, int]):
-        super().__init__()
-        self.shown = False
+    def __init__(self, suit: Suit, rank: Rank, pos: tuple[int, int], *groups: pygame.sprite.Group):
+        super().__init__(*groups)
+        self.shown = True
         self.suit = suit
         self.rank = rank
-        self.image = pygame.Surface((71, 95), pygame.SRCALPHA)
+        self.image = pygame.Surface((CARD_WID, CARD_HEI), pygame.SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
         card_image = pygame.Rect(0, 0, wid, hei)
         pygame.draw.rect(self.image, pygame.Color("grey90"), card_image, border_radius=7)
         pygame.draw.rect(self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7)
-        self.back = assets.get_cardb_sprite()
         self.front = assets.get_cardf_sprite(self.suit, self.rank)
-        self.image.blit(self.back, (0, 0))
+        self.back = assets.get_cardb_sprite()
+        self.image.blit(self.front, (0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = pos
+        self._target_pos = pos
+        self.follow_mouse = False
 
     def toggle_show(self) -> None:
         """
@@ -40,14 +47,13 @@ class Card(pygame.sprite.Sprite):
         card_image = pygame.Rect(0, 0, wid, hei)
         pygame.draw.rect(self.image, pygame.Color("grey90"), card_image, border_radius=7)
         pygame.draw.rect(self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7)
-
-        self.back = assets.get_cardb_sprite()
         if self.shown:
             self.image.blit(self.front, (0, 0))
         else:
             self.image.blit(self.back, (0, 0))
 
-
+    def toggle_mouse_follow(self):
+        self.follow_mouse = not self.follow_mouse
 
     def draw(self, screen: pygame.surface.Surface, is_held: bool=True) -> None:
         """
@@ -73,49 +79,54 @@ class Card(pygame.sprite.Sprite):
             screen.blit(trans_surf, (shadow.x, shadow.y))
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
-    def is_clicked(self, pos: tuple[int, int]) -> bool:
-        """
-        Checks if card is clicked
+    def update(self, dt: float) -> None:
+        if self.rect.center != self._target_pos or self.follow_mouse:
+            self.rect.center = self.smooth_animation(dt)
 
-        Args:
-            pos(tuple[int, int]): x, y pixel location on screen
-        """
-        return self.rect.collidepoint(pos)
-
-    def update(self, dt: float, target: tuple[int, int]) -> None:
-        self.rect.center = self.smooth_animation(dt, target)
-
-    def smooth_animation(self, dt: float, target: tuple[int, int]) -> tuple[int, int]:
+    def smooth_animation(self, dt: float) -> tuple[int, int]:
         """
         Smooths movement of card from its location to target location
 
         Args:
             dt (float): delta time
-            target (tuple[int, int]): target location for movement
         """
         # https://stackoverflow.com/questions/64087982/how-to-make-smooth-movement-in-pygame
         # used above thread to create the smooth animation
         Vector2 = pygame.math.Vector2
-        mousex, mousey = target
-        minimum_distance = 5
-        maximum_distance = 10000
-        target_vector = Vector2(mousex, mousey)
+        target_x, target_y = self._target_pos
+        if self.follow_mouse:
+            target_x, target_y = pygame.mouse.get_pos()
+        target_vector = Vector2(target_x, target_y)
         follower_vector = Vector2(self.rect.centerx, self.rect.centery)
-        new_follower_vector = Vector2(self.rect.centerx, self.rect.centery)
-
         distance = follower_vector.distance_to(target_vector)
-        if distance > minimum_distance:
-            direction_vector = (target_vector - follower_vector) / distance
-            min_step = max(0, distance - maximum_distance)
-            max_step = distance - minimum_distance
-            step_distance = (min_step + (max_step - min_step) * 10) * dt
-            new_follower_vector = follower_vector + direction_vector * step_distance
+        if distance < 5:
+            return (target_x, target_y)
+        # Calculate the normalized direction vector from the current position to the target
+        direction_vector = (target_vector - follower_vector).normalize()
+        # Compute the step distance (using 10 as a speed multiplier; adjust as needed)
+        step_distance = 10 * distance * dt
+        # Ensure we don't move farther than the remaining distance
+        step_distance = max(min(step_distance, distance), 5)
+        new_follower_vector = follower_vector + direction_vector * step_distance
         return (int(new_follower_vector.x), int(new_follower_vector.y))
+
+    def set_target_pos(self, pos: tuple[int, int]) -> None:
+        """
+        Sets a new rest position for the card
+
+        Args:
+            pos (tuple[int, int]): x, y position for card
+        """
+        self._target_pos = pos
 
 class CardGroup(pygame.sprite.Group):
     """
     pygame Group class that allows extra functionality
     """
+    # Only reason for this overwrite is to enforce return type of Card for mypy
+    def sprites(self) -> list[Card]:
+        return super().sprites()
+
     def move_to_top(self, card: Card) -> None:
         """Moves card to top (Drawn last)"""
         if card in self.sprites():

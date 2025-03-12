@@ -10,8 +10,8 @@ class StateBase(ABC):
     def __init__(self, game: 'Game'):
         self.game = game
         self.prev_state = None
-        self.font24 = pygame.font.Font(None, 24)
-        self.font300 = pygame.font.Font(None, 300)
+        self.font24 = pygame.font.Font("assets/balatro.ttf", 24)
+        self.font200 = pygame.font.Font("assets/balatro.ttf", 200)
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> None:

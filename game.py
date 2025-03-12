@@ -25,7 +25,7 @@ class Game():
         self.state_stack = [Title(self)]
         self.state = self.state_stack[-1]
         self.prev_time = 0.0
-        self.fps = 60
+        self.fps = 120
 
     def run(self):
         """
