@@ -63,6 +63,10 @@ class Gameplay(StateBase):
             card = Card(card_data.get_suit, card_data.get_rank, (1000, screen_h - CARD_HEI * 3 // 2)) # places center of deck 1.5 card_h above bottom of screen
             self.hand.add_card(card)
 
+    def select_card(self, card: Card) -> None:
+        self.game_logic.select_card() #has to be the CardData not a Card.. maybe?
+        ### TODO: Implement gui selection for card
+
     def handle_event(self, event: pygame.event.Event) -> None:
         """
         Gets event from main Game event loop. Functions as gameplay game loop
@@ -84,7 +88,7 @@ class Gameplay(StateBase):
             if self.mouse_down_time is not None:
                 elapsed_time = time.time() - self.mouse_down_time
                 if elapsed_time < DRAG_THRESHOLD:
-                    print("Mouse Click!")
+                    self.select_card(self.held_card)
                 self.mouse_down_time = None  # Reset
             if self.held_card and self.held_card.follow_mouse:
                 self.held_card.toggle_mouse_follow()

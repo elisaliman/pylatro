@@ -2,6 +2,7 @@ import pygame
 from enums import Suit, Rank
 import assets.balatro_cards_data as assets
 from assets.balatro_cards_data import CARD_WID, CARD_HEI
+from gameplay_logic import CardData
 
 CARD_WID = 71
 CARD_HEI = 95
@@ -118,6 +119,21 @@ class Card(pygame.sprite.Sprite):
             pos (tuple[int, int]): x, y position for card
         """
         self._target_pos = pos
+
+    def __eq__(self, value):
+        if isinstance(value, CardData):
+            return self.rank == value.get_rank() and self.suit == value.get_suit
+        elif isinstance(value, Card):
+            return self.rank == value.rank and self.suit == value.suit
+        else:
+            return False
+
+    def __hash__(self):
+        """
+        Needed to add if i added an __eq__ method
+        """
+        return hash((self.suit, self.rank))
+
 
 class CardGroup(pygame.sprite.Group):
     """
