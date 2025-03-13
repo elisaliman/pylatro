@@ -36,7 +36,6 @@ class CardHolder(pygame.sprite.Sprite):
         """
         positions = ["left", "center", "right"]
         if text_side.lower() not in positions:
-            print("AUTOPLACING TEXT")
             text_side = "left"
         x, y = self.pos
         text_y = y + CARD_HEI + 10
@@ -59,11 +58,8 @@ class CardHolder(pygame.sprite.Sprite):
         """
         Adds card to card holder
         """
-        print("starting")
         assert isinstance(card, Card)
-        print(self.cards.sprites())
         if card not in self.cards.sprites():
-            print(f"adding card {card}")
             card_idx = len(self.cards.sprites())
             x = self.rect.x + (card_idx * CARD_WID) + CARD_WID // 2
             y = self.rect.y + (CARD_HEI // 2)
@@ -72,16 +68,29 @@ class CardHolder(pygame.sprite.Sprite):
             text = f"{len(self.cards.sprites())}/{self.num_slots}"
             self.text_image = self.font.render(text, True, "white")
 
-    def remove_card(self, card: Card) -> None:
-        """
-        Removes card from card holder
-        """
-        if card not in self.cards.sprites():
-            raise ValueError(f"Card: {card} not found in CardHolder to begin with!")
-        self.cards.remove(card)
-
     def add_slot(self) -> None:
         """
         Adds one more card slot to card holder
         """
         self.num_slots += 1
+
+    def sort_cards(self) -> None:
+        """
+        Sorts cards by rank both internally and visually
+        """
+        cards = self.cards.sprites().copy()
+        print(cards)
+        for i in range(1, len(cards)):
+            card = cards[i]
+            j = i - 1
+            while j >= 0 and cards[j].rank.value > card.rank.value:
+                cards[j + 1] = cards[j]  # Shift larger elements right
+                j -= 1
+            cards[j + 1] = card  # Insert at correct position
+        self.cards.empty()
+        cards.reverse()
+        for idx, card in enumerate(cards):
+            x = self.rect.x + (idx * CARD_WID) + CARD_WID // 2
+            y = self.rect.y + (CARD_HEI // 2)
+            card.set_target_pos((x, y))
+        self.cards.add(cards)

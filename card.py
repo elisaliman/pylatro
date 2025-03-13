@@ -63,7 +63,6 @@ class Card(pygame.sprite.Sprite):
             self.set_target_pos((self.rect.centerx, self.rect.centery - offset))
         else:
             self.set_target_pos((self.rect.centerx, self.rect.centery + offset))
-        print(self.rank, self.selected)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         """
@@ -128,6 +127,9 @@ class Card(pygame.sprite.Sprite):
             pos (tuple[int, int]): x, y position for card
         """
         self._target_pos = pos
+
+    def __repr__(self):
+        return f"Card: {self.rank.name.capitalize()} of {self.suit.name.capitalize()}s"
 
     def __eq__(self, value):
         if isinstance(value, Card):

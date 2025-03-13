@@ -5,7 +5,8 @@ import time
 from gameplay_logic import CardData, GameplayLogic
 from states.statebase import StateBase
 from states.pause import Pause
-from assets.balatro_cards_data import CARD_HEI
+from assets.balatro_cards_data import CARD_HEI, CARD_WID
+from button import Button
 
 DRAG_THRESHOLD = 0.25
 
@@ -37,7 +38,7 @@ def generate_deck(deck_data: list[CardData]) -> list[Card]:
 
 class Gameplay(StateBase):
     game_logic: GameplayLogic
-    deck: list[Card]
+    buttons: pygame.sprite.Group
     hand: CardHolder
     held_card: Card | None
     mouse_down_time: float | None
@@ -52,18 +53,43 @@ class Gameplay(StateBase):
         self.held_card = None
         self.deal_to_hand()
         self.mouse_down_time = None
+        self.create_buttons()
+
+    def create_buttons(self) -> None:
+        self.buttons = pygame.sprite.Group()
+        hand = self.hand.rect
+        play_rect = pygame.Rect((hand.x, hand.y + CARD_HEI + 10), (CARD_HEI, CARD_WID))
+        play = Button(play_rect, "Play Hand", None, self.font15, pygame.Color("cornflowerblue"), pygame.Color("white"))
+        discard_rect = pygame.Rect((hand.bottomright[0] - CARD_HEI, hand.y + CARD_HEI + 10), (CARD_HEI, CARD_WID))
+        discard = Button(discard_rect, "Discard", self.discard, self.font15, pygame.Color("crimson"), pygame.Color("white"))
+        self.buttons.add(play, discard)
 
     def deal_to_hand(self) -> None:
         """
         Deals cards from deck into hand
         """
+        hand_num_empty = self.game_logic.hand_size - len(self.game_logic.hand)
         self.game_logic.deal_to_hand()
-        _, screen_h = self.game.screen.get_size()
-        for card_data in self.game_logic.hand:
-            card = Card(card_data.get_suit, card_data.get_rank, (1000, screen_h - CARD_HEI * 3 // 2)) # places center of deck 1.5 card_h above bottom of screen
-            self.hand.add_card(card)
+        if hand_num_empty != 0:
+            _, screen_h = self.game.screen.get_size()
+            for card_data in self.game_logic.hand[-hand_num_empty:]:
+                card = Card(card_data.get_suit, card_data.get_rank, (1000, screen_h - CARD_HEI * 3 // 2)) # places center of deck 1.5 card_h above bottom of screen
+                self.hand.add_card(card)
+            self.hand.sort_cards()
 
-    @property
+    def discard(self) -> None:
+        if self.num_selected() > 0 and self.game_logic.num_discards > 0:
+            self.game_logic.discard()
+            for card in self.hand.cards.sprites():
+                if card.selected:
+                    card.shown = False
+                    x, _ = self.game.screen.get_size()
+                    card.set_target_pos((x - 10, card.rect.y + 10))
+                    card.kill()
+                    del card
+            if self.game_logic.deck:
+                self.deal_to_hand()
+
     def num_selected(self) -> int:
         """
         Returns number of selected cards
@@ -75,12 +101,10 @@ class Gameplay(StateBase):
         return count
 
     def select_card(self, card: Card) -> None:
-        if card.selected:
-            card.toggle_select()
-        elif self.num_selected < 5:
+        if card.selected or self.num_selected() < 5:
             card_data = self.game_logic.convert_to_card_data(card)
+            card.toggle_select()
             self.game_logic.select_card(card_data)
-            self.held_card.toggle_select()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -90,7 +114,10 @@ class Gameplay(StateBase):
         if event.type == pygame.QUIT:
             self.game.quit()
 
-        if event.type == pygame.MOUSEBUTTONDOWN:
+        if event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]:
+            for button in self.buttons.sprites():
+                if isinstance(button, Button) and button.hovered:
+                    button.callback()
             # reversed to scan cards from top layer to bottom
             for card in self.hand.cards.sprites()[::-1]:
                 if card.rect.collidepoint(event.pos):
@@ -104,7 +131,7 @@ class Gameplay(StateBase):
                 elapsed_time = time.time() - self.mouse_down_time
                 if elapsed_time < DRAG_THRESHOLD:
                     self.select_card(self.held_card)
-                self.mouse_down_time = None  # Reset
+                self.mouse_down_time = None
             if self.held_card and self.held_card.follow_mouse:
                 self.held_card.toggle_mouse_follow()
             self.held_card = None
@@ -127,14 +154,19 @@ class Gameplay(StateBase):
                 self.mouse_down_time = None  # Reset
                 self.held_card.toggle_mouse_follow()
 
+        for button in self.buttons.sprites():
+            if isinstance(button, Button):
+                button.update(dt)
         for card in self.hand.cards.sprites():
             card.update(dt) # pos should be propper position in hand table
-
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
         self.hand.draw(screen)
+        self.buttons.draw(screen)
         self.hand.cards.draw_cards(screen)
+        self.draw_text(f"Discards: {self.game_logic.num_discards}", self.font24, (100, 550), pygame.Color("crimson"))
+
         if self.held_card:
             self.held_card.draw(screen)
         pygame.display.flip()
