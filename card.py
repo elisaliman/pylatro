@@ -2,7 +2,6 @@ import pygame
 from enums import Suit, Rank
 import assets.balatro_cards_data as assets
 from assets.balatro_cards_data import CARD_WID, CARD_HEI
-from gameplay_logic import CardData
 
 CARD_WID = 71
 CARD_HEI = 95
@@ -17,6 +16,7 @@ class Card(pygame.sprite.Sprite):
     shown: bool
     _target_pos: tuple[int, int]
     follow_mouse: bool
+    selected: bool
 
     def __init__(self, suit: Suit, rank: Rank, pos: tuple[int, int], *groups: pygame.sprite.Group):
         super().__init__(*groups)
@@ -36,13 +36,13 @@ class Card(pygame.sprite.Sprite):
         self.rect.center = pos
         self._target_pos = pos
         self.follow_mouse = False
+        self.selected = False
 
     def toggle_show(self) -> None:
         """
         Toggles if card is shown (as in whether front vs back of card is displayed)
         """
         self.shown = not self.shown
-
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
         card_image = pygame.Rect(0, 0, wid, hei)
@@ -53,10 +53,19 @@ class Card(pygame.sprite.Sprite):
         else:
             self.image.blit(self.back, (0, 0))
 
-    def toggle_mouse_follow(self):
+    def toggle_mouse_follow(self) -> None:
         self.follow_mouse = not self.follow_mouse
 
-    def draw(self, screen: pygame.surface.Surface, is_held: bool=True) -> None:
+    def toggle_select(self) -> None:
+        self.selected = not self.selected
+        offset: int = 35
+        if self.selected:
+            self.set_target_pos((self.rect.centerx, self.rect.centery - offset))
+        else:
+            self.set_target_pos((self.rect.centerx, self.rect.centery + offset))
+        print(self.rank, self.selected)
+
+    def draw(self, screen: pygame.surface.Surface) -> None:
         """
         Draws the card, also draws its shadow if its held. (really intended to
         only ever be used when card is held)
@@ -66,7 +75,7 @@ class Card(pygame.sprite.Sprite):
             is_held (bool, optional): True if card is currently held. Defaults
                 to True
         """
-        if is_held:
+        if self.follow_mouse:
             shadow = self.rect.copy()
             shadow.y += 10
             shadow.x += 10
@@ -121,9 +130,7 @@ class Card(pygame.sprite.Sprite):
         self._target_pos = pos
 
     def __eq__(self, value):
-        if isinstance(value, CardData):
-            return self.rank == value.get_rank() and self.suit == value.get_suit
-        elif isinstance(value, Card):
+        if isinstance(value, Card):
             return self.rank == value.rank and self.suit == value.suit
         else:
             return False
@@ -142,6 +149,11 @@ class CardGroup(pygame.sprite.Group):
     # Only reason for this overwrite is to enforce return type of Card for mypy
     def sprites(self) -> list[Card]:
         return super().sprites()
+
+    def draw_cards(self, screen: pygame.surface.Surface) -> None:
+        """draws cards onto screen"""
+        for card in self.sprites():
+            card.draw(screen)
 
     def move_to_top(self, card: Card) -> None:
         """Moves card to top (Drawn last)"""

@@ -63,9 +63,24 @@ class Gameplay(StateBase):
             card = Card(card_data.get_suit, card_data.get_rank, (1000, screen_h - CARD_HEI * 3 // 2)) # places center of deck 1.5 card_h above bottom of screen
             self.hand.add_card(card)
 
+    @property
+    def num_selected(self) -> int:
+        """
+        Returns number of selected cards
+        """
+        count = 0
+        for cards in self.hand.cards.sprites():
+            if cards.selected:
+                count += 1
+        return count
+
     def select_card(self, card: Card) -> None:
-        self.game_logic.select_card() #has to be the CardData not a Card.. maybe?
-        ### TODO: Implement gui selection for card
+        if card.selected:
+            card.toggle_select()
+        elif self.num_selected < 5:
+            card_data = self.game_logic.convert_to_card_data(card)
+            self.game_logic.select_card(card_data)
+            self.held_card.toggle_select()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -119,7 +134,7 @@ class Gameplay(StateBase):
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
         self.hand.draw(screen)
-        self.hand.cards.draw(screen)
+        self.hand.cards.draw_cards(screen)
         if self.held_card:
-            self.held_card.draw(screen, True)
+            self.held_card.draw(screen)
         pygame.display.flip()

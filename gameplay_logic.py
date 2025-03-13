@@ -1,5 +1,6 @@
 from enums import Suit, Rank
 import random
+from card import Card
 
 def generate_deck(shuffle: bool=False) -> list['CardData']:
     """
@@ -83,6 +84,16 @@ class GameplayLogic():
                 count += 1
         return count
 
+    def convert_to_card_data(self, gui_card: Card) -> CardData:
+        """
+        Gets CardData in hand that matches the GUI Card
+        """
+        suit, rank = gui_card.suit, gui_card.rank
+        for card_data in self.hand:
+            if card_data.get_suit == suit and card_data.get_rank == rank:
+                return card_data
+        raise ValueError("Matching card not found in hand")
+
     def deal_to_hand(self) -> None:
         """
         Deals cards from deck into hand
@@ -97,7 +108,12 @@ class GameplayLogic():
                 self.hand.append(delt)
 
     def select_card(self, card: CardData) -> None:
-        """Selects card to be played"""
+        """
+        Selects card to be played
+
+        Args:
+            card (Card): Card to select
+        """
         if card.selected:
             card.selected = False
         elif self.num_selected < 5:
