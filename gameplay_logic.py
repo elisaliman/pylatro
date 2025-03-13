@@ -1,6 +1,9 @@
 from enums import Suit, Rank
 import random
 from card import Card
+from operator import attrgetter
+
+
 
 def generate_deck(shuffle: bool=False) -> list['CardData']:
     """
@@ -60,7 +63,7 @@ class GameplayLogic():
         self.jokers = []
         self.hand_size = 8
         self.num_hands = 4
-        self.num_discards = 3
+        self.num_discards = 30
         self.score = 0
         self.done = False
 
@@ -72,6 +75,12 @@ class GameplayLogic():
         Returns (bool): True if deck is empty, false otherwise
         """
         return len(self.deck) == 0
+
+    def sort_cards(self, by_rank: bool) -> None:
+        key_attr = attrgetter("_rank.value" if by_rank else "_suit.value")
+        cards = self.hand.copy()
+        cards = sorted(cards, key=key_attr, reverse=True)
+        self.hand = cards
 
     def num_selected(self) -> int:
         """
@@ -87,6 +96,8 @@ class GameplayLogic():
         """
         Gets CardData in hand that matches the GUI Card
         """
+        ###TODO: Will need to change this bevuase you can have copies of the same card
+        ### Will probably need to use indexing and sort the cards in game_logic
         suit, rank = gui_card.suit, gui_card.rank
         for card_data in self.hand:
             if card_data.get_suit == suit and card_data.get_rank == rank:

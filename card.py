@@ -14,7 +14,7 @@ class Card(pygame.sprite.Sprite):
     front: pygame.surface.Surface
     back: pygame.surface.Surface
     shown: bool
-    _target_pos: tuple[int, int]
+    target_pos: tuple[int, int]
     follow_mouse: bool
     selected: bool
 
@@ -34,7 +34,7 @@ class Card(pygame.sprite.Sprite):
         self.image.blit(self.front, (0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = pos
-        self._target_pos = pos
+        self.target_pos = pos
         self.follow_mouse = False
         self.selected = False
 
@@ -89,7 +89,7 @@ class Card(pygame.sprite.Sprite):
         screen.blit(self.image, (self.rect.x, self.rect.y))
 
     def update(self, dt: float) -> None:
-        if self.rect.center != self._target_pos or self.follow_mouse:
+        if self.rect.center != self.target_pos or self.follow_mouse:
             self.rect.center = self.smooth_animation(dt)
 
     def smooth_animation(self, dt: float) -> tuple[int, int]:
@@ -102,7 +102,7 @@ class Card(pygame.sprite.Sprite):
         # https://stackoverflow.com/questions/64087982/how-to-make-smooth-movement-in-pygame
         # used above thread to create the smooth animation
         Vector2 = pygame.math.Vector2
-        target_x, target_y = self._target_pos
+        target_x, target_y = self.target_pos
         if self.follow_mouse:
             target_x, target_y = pygame.mouse.get_pos()
         target_vector = Vector2(target_x, target_y)
@@ -126,7 +126,7 @@ class Card(pygame.sprite.Sprite):
         Args:
             pos (tuple[int, int]): x, y position for card
         """
-        self._target_pos = pos
+        self.target_pos = pos
 
     def __repr__(self):
         return f"Card: {self.rank.name.capitalize()} of {self.suit.name.capitalize()}s"

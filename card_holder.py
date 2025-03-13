@@ -1,5 +1,7 @@
 import pygame
 from card import Card, CardGroup, CARD_WID, CARD_HEI
+from gameplay_logic import GameplayLogic
+
 
 class CardHolder(pygame.sprite.Sprite):
     w: int
@@ -65,8 +67,6 @@ class CardHolder(pygame.sprite.Sprite):
             y = self.rect.y + (CARD_HEI // 2)
             card.set_target_pos((x, y))
             self.cards.add(card)
-            text = f"{len(self.cards.sprites())}/{self.num_slots}"
-            self.text_image = self.font.render(text, True, "white")
 
     def add_slot(self) -> None:
         """
@@ -74,23 +74,13 @@ class CardHolder(pygame.sprite.Sprite):
         """
         self.num_slots += 1
 
-    def sort_cards(self) -> None:
+    def update(self, dt: float) -> None:
         """
-        Sorts cards by rank both internally and visually
+        Updates card count text
         """
-        cards = self.cards.sprites().copy()
-        print(cards)
-        for i in range(1, len(cards)):
-            card = cards[i]
-            j = i - 1
-            while j >= 0 and cards[j].rank.value > card.rank.value:
-                cards[j + 1] = cards[j]  # Shift larger elements right
-                j -= 1
-            cards[j + 1] = card  # Insert at correct position
-        self.cards.empty()
-        cards.reverse()
-        for idx, card in enumerate(cards):
-            x = self.rect.x + (idx * CARD_WID) + CARD_WID // 2
-            y = self.rect.y + (CARD_HEI // 2)
-            card.set_target_pos((x, y))
-        self.cards.add(cards)
+        count = 0
+        for card in self.cards.sprites():
+            if self.rect.collidepoint(card.target_pos):
+                count += 1
+        text = f"{count}/{self.num_slots}"
+        self.text_image = self.font.render(text, True, "white")
