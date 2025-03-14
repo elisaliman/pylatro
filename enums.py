@@ -20,3 +20,18 @@ class Rank(Enum):
     QUEEN = 10
     KING = 11
     ACE = 12
+
+class HandType(Enum):
+    HIGH = 0
+    PAIR = 1
+    TWOPAIR = 2
+    THREE = 3
+    STRAIGHT = 4
+    FLUSH = 5
+    FULL = 6
+    FOUR = 7
+    STRAIGHT_F = 8
+    ROYAL_F = 9
+    FIVE = 10
+    HOUSE_F = 11
+    FIVE_F = 12

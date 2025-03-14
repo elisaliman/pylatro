@@ -1,7 +1,5 @@
 import pygame
-from card import Card, CardGroup, CARD_WID, CARD_HEI
-from gameplay_logic import GameplayLogic
-
+from states.gui_elements.card import Card, CardGroup, CARD_WID, CARD_HEI
 
 class CardHolder(pygame.sprite.Sprite):
     w: int

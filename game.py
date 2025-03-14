@@ -1,7 +1,7 @@
 import pygame
 import sys
 import time
-from card import Card, CardGroup
+from states.gui_elements.card import Card, CardGroup
 from states.title import Title
 from typing import TYPE_CHECKING
 

@@ -1,8 +1,8 @@
-from enums import Suit, Rank
+from enums import Suit, Rank, HandType
 import random
-from card import Card
-from operator import attrgetter
-
+from states.gui_elements.card import Card
+from state_logic.carddata import CardData
+import state_logic.poker_hand_type as pk
 
 
 def generate_deck(shuffle: bool=False) -> list['CardData']:
@@ -22,32 +22,9 @@ def generate_deck(shuffle: bool=False) -> list['CardData']:
         random.shuffle(deck)
     return deck
 
-class CardData():
-    suit: Suit
-    rank: Rank
-    selected: bool
-
-    def __init__(self, suit: Suit, rank: Rank):
-        self._suit = suit
-        self._rank = rank
-        self.selected = False
-
-    @property
-    def get_suit(self) -> Suit:
-        """Suit getter property"""
-        return self._suit
-
-    @property
-    def get_rank(self) -> Rank:
-        """Rank getter property"""
-        return self._rank
-
-    def __repr__(self):
-        return f"CD: {self._rank.name.capitalize()} of {self._suit.name.capitalize()}s"
-
 class GameplayLogic():
     deck: list[CardData]
-    hand: list[CardData] # will need to add sorting, so u can sort by suit or rank
+    hand: list[CardData]
     played: list[CardData]
     jokers: list[CardData]
     hand_size: int
@@ -77,10 +54,11 @@ class GameplayLogic():
         return len(self.deck) == 0
 
     def sort_cards(self, by_rank: bool) -> None:
-        key_attr = attrgetter("_rank.value" if by_rank else "_suit.value")
-        cards = self.hand.copy()
-        cards = sorted(cards, key=key_attr, reverse=True)
-        self.hand = cards
+        if by_rank:
+            self.hand = sorted(self.hand, key=lambda card: (-card.get_rank.value, card.get_suit.value))
+        else:
+            self.hand = sorted(self.hand, key=lambda card: (card.get_suit.value, -card.get_rank.value))
+        print(self.hand)
 
     def num_selected(self) -> int:
         """
@@ -142,7 +120,11 @@ class GameplayLogic():
         self.hand = [card for card in self.hand if not card.selected]
         # Currenlty plays all cards. Will need to implement poker hands to
         # play highest ranked hand of cards
-        chips = 0
+        #sudo code:
+        self.played, hand_type = pk.get_hand_type(self.hand)
+        #base_chips, base_mult = get_level(hand_type) # need to add base chips and base mult getter from hand type, probably new file with new class stored in game.py?
+        base_chips, base_mult = (0, 0)
+        chips = base_chips
         for card in self.played:
             chips += min(card.get_rank.value + 2, 11)
         ###
@@ -150,11 +132,10 @@ class GameplayLogic():
         # with unique base mults and chips. Will also have to implement joker
         # system here i think.
         ###
-        mult = 1
         self.num_hands -= 1
         if self.num_hands == 0:
             self.done = True
-        self.score += chips * mult
+        self.score += chips * base_mult
         self.played = []
 
     def discard(self) -> None:
