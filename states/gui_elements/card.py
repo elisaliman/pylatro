@@ -20,10 +20,9 @@ class Card(pygame.sprite.Sprite):
     selected: bool
 
     def __init__(
-        self, suit: Suit, rank: Rank, pos: tuple[int, int], *groups: pygame.sprite.Group
+        self, suit: Suit, rank: Rank, pos: tuple[int, int], shown: bool=True, *groups: pygame.sprite.Group
     ):
         super().__init__(*groups)
-        self.shown = True
         self.suit = suit
         self.rank = rank
         self.image = pygame.Surface((CARD_WID, CARD_HEI), pygame.SRCALPHA)
@@ -38,12 +37,13 @@ class Card(pygame.sprite.Sprite):
         )
         self.front = assets.get_cardf_sprite(self.suit, self.rank)
         self.back = assets.get_cardb_sprite()
-        self.image.blit(self.front, (0, 0))
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.target_pos = pos
         self.follow_mouse = False
         self.selected = False
+        self.shown = not shown
+        self.toggle_show()
 
     def toggle_show(self) -> None:
         """

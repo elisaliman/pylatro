@@ -6,7 +6,7 @@ FRAME_WIDTH, FRAME_HEIGHT = 142, 190
 
 try:
     sprite_sheet = pygame.image.load("assets/balatro_cards.png")
-    back = pygame.image.load("assets/balatro_backs-export.png")
+    back = pygame.image.load("assets/balatro_decks.png")
 except pygame.error:
     print("Error loading sprite sheet!")
 
@@ -35,7 +35,6 @@ def get_cardb_sprite() -> pygame.surface.Surface:
     sheet = back
     try:
         sprite = sheet.subsurface((0, 0), (FRAME_WIDTH, FRAME_HEIGHT))
-        sprite = pygame.transform.scale(sprite, (CARD_WID, CARD_HEI))
         return sprite
     except pygame.error as perr:
         print(f"Error: Unable to extract deck back. {perr}")

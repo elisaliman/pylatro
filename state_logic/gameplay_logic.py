@@ -35,6 +35,7 @@ class GameplayLogic:
 
     def __init__(self):
         self.deck = generate_deck(True)
+        self.deck_total = len(self.deck)
         self.hand = []
         self.played = []
         self.jokers = []
@@ -60,6 +61,10 @@ class GameplayLogic:
     @property
     def num_discards(self) -> int:
         return self._num_discards
+
+    @property
+    def deck_remaining(self) -> int:
+        return len(self.deck)
 
     def sort_cards(self, by_rank: bool) -> None:
         if by_rank:

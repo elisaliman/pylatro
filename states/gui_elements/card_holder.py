@@ -1,6 +1,6 @@
 import pygame
 from states.gui_elements.card import Card, CardGroup, CARD_WID, CARD_HEI
-
+from typing import override
 
 class CardHolder(pygame.sprite.Sprite):
     w: int
@@ -13,7 +13,8 @@ class CardHolder(pygame.sprite.Sprite):
     text_pos: tuple[int, int]
     font: pygame.font.Font
 
-    def __init__(self, w: int, pos: tuple[int, int], num_slots: int, text_side: str):
+
+    def __init__(self, w: int, center_pos: tuple[int, int], num_slots: int, text_side: str):
         self.w = w
         self.h = CARD_HEI + 10
         self.image = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
@@ -24,10 +25,9 @@ class CardHolder(pygame.sprite.Sprite):
             border_radius=10,
         )
         self.rect = self.image.get_rect()
-        self.rect.topleft = pos
+        self.rect.center = center_pos
         self.cards = CardGroup()
         self.num_slots = num_slots
-        self.pos = pos
         self.set_text(text_side)
 
     def set_text(self, text_side: str) -> None:
@@ -37,20 +37,27 @@ class CardHolder(pygame.sprite.Sprite):
         positions = ["left", "center", "right"]
         if text_side.lower() not in positions:
             text_side = "left"
-        x, y = self.pos
-        text_y = y + CARD_HEI + 10
-        idx = positions.index(text_side)
-        text_x = x + (idx * self.image.get_size()[0] // 2)
+        text_x, y = self.rect.center
+        text_y = y + CARD_HEI // 2 + 10
+        if text_side == "left":
+            text_x = self.rect.left
+        elif text_side == "right":
+            text_x = self.rect.right
         self.text_pos = (text_x, text_y)
         self.font = pygame.font.Font("assets/balatro.ttf", 15)
         text = f"{len(self.cards.sprites())}/{self.num_slots}"
         self.text_image = self.font.render(text, True, "white")
-        if text_side == "center":
+        if text_side == "center": # middles text if text is in center
             offset_x = self.text_image.get_size()[0] // 2
             self.text_pos = self.text_pos[0] - offset_x, self.text_pos[1]
+        if text_side == "right":
+            offset_x = self.text_image.get_size()[0]
+            self.text_pos = self.text_pos[0] - offset_x, self.text_pos[1]
+
+
 
     def draw(self, screen: pygame.surface.Surface) -> None:
-        screen.blit(self.image, self.pos)
+        screen.blit(self.image, self.rect.topleft)
         screen.blit(self.text_image, self.text_pos)
 
     def add_card(self, card: Card) -> None:
@@ -71,7 +78,8 @@ class CardHolder(pygame.sprite.Sprite):
         """
         self.num_slots += 1
 
-    def update(self, dt: float) -> None:
+
+    def update(self, dt: float, ctx:int|None=None) -> None:
         """
         Updates card count text
         """
@@ -81,3 +89,15 @@ class CardHolder(pygame.sprite.Sprite):
                 count += 1
         text = f"{count}/{self.num_slots}"
         self.text_image = self.font.render(text, True, "white")
+
+class DeckHolder(CardHolder):
+    """
+    Special subclass to override how the text is displayed for the deck
+    """
+    def __init__(self, w: int, center_pos: tuple[int, int], num_slots: int, text_side: str):
+        super().__init__(w, center_pos, num_slots, text_side)
+
+    def update(self, dt: float, deck_remaining: int|None=None):
+        if deck_remaining:
+            text = f"{deck_remaining}/{self.num_slots}"
+            self.text_image = self.font.render(text, True, "white")

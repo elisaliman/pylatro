@@ -6,8 +6,8 @@ from assets.balatro_cards_data import CARD_HEI, CARD_WID
 from state_logic.carddata import CardData
 from state_logic.gameplay_logic import GameplayLogic
 from states.gui_elements.button import Button
-from states.gui_elements.card import Card, CardGroup
-from states.gui_elements.card_holder import CardHolder
+from states.gui_elements.card import Card
+from states.gui_elements.card_holder import CardHolder, DeckHolder
 from states.pause import Pause
 from states.statebase import StateBase
 
@@ -35,7 +35,7 @@ def generate_deck(deck_data: list[CardData]) -> list[Card]:
     for card_data in deck_data:
         suit = card_data.get_suit
         rank = card_data.get_rank
-        card = Card(suit, rank, (400, 400))
+        card = Card(suit, rank, (1000, 400))
         deck.append(card)
     return deck
 
@@ -44,6 +44,7 @@ class Gameplay(StateBase):
     game_logic: GameplayLogic
     buttons: pygame.sprite.Group
     hand: CardHolder
+    deck: DeckHolder
     sort_by_rank: bool
     held_card: Card | None
     mouse_down_time: float | None
@@ -53,11 +54,16 @@ class Gameplay(StateBase):
         super().__init__(game)
         self.game_logic = GameplayLogic()
         screen_w, screen_h = self.game.screen.get_size()
-        x = (screen_w - 568) // 2  # 568 is the size of the hand display
+        x = screen_w // 2
         y = (
             screen_h - 2 * CARD_HEI
         )  # places hand two card heights above bottom of screen
-        self.hand = CardHolder(568, (x, y), 8, "center")
+        self.hand = CardHolder(CARD_WID * 8, (x, y), 8, "center")
+        x += int(CARD_WID * 4.5) + CARD_WID * 3
+        self.deck = DeckHolder(CARD_WID, (x, y), len(self.game_logic.deck), "left")
+        temp = self.game_logic.deck[-1]
+        fake_card = Card(temp.get_suit, temp.get_rank, self.deck.rect.center, shown=False)
+        self.deck.add_card(fake_card)
         self.held_card = None
         self.sort_by_rank = True
         self.mouse_down_time = None
@@ -162,7 +168,7 @@ class Gameplay(StateBase):
                 card = Card(
                     card_data.get_suit,
                     card_data.get_rank,
-                    (1000, screen_h - CARD_HEI * 3 // 2),
+                    self.deck.rect.center,
                 )  # places center of deck 1.5 card_h above bottom of screen
                 self.hand.add_card(card)
             self.sort_cards()
@@ -213,7 +219,7 @@ class Gameplay(StateBase):
             for button in self.buttons.sprites():
                 if isinstance(button, Button) and button.hovered:
                     button.callback()
-            # reversed to scan cards from top layer to bottom
+            # Reversed to scan cards from top layer to bottom
             for card in self.hand.cards.sprites()[::-1]:
                 if not self.play_anim_timer and card.rect.collidepoint(event.pos):
                     self.mouse_down_time = time.time()
@@ -268,6 +274,7 @@ class Gameplay(StateBase):
         for card in self.hand.cards.sprites():
             card.update(dt)  # pos should be propper position in hand table
         self.hand.update(dt)
+        self.deck.update(dt, self.game_logic.deck_remaining)
         if self.play_anim_timer:
             if time.time() - self.play_anim_timer >= 0.5:
                 self.discard(True)
@@ -276,6 +283,9 @@ class Gameplay(StateBase):
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
         self.hand.draw(screen)
+        self.deck.draw(screen)
+        if self.game_logic.deck:
+            self.deck.cards.draw_cards(screen)
         self.buttons.draw(screen)
         self.hand.cards.draw_cards(screen)
         self.draw_text(
@@ -296,7 +306,6 @@ class Gameplay(StateBase):
             (100, 550),
             pygame.Color("crimson"),
         )
-
         if self.held_card:
             self.held_card.draw(screen)
         pygame.display.flip()
