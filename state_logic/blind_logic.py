@@ -1,8 +1,10 @@
 import random
+import copy
 
 import state_logic.poker_hand_type as pk
 from enums import HandType, Rank, Suit
 from state_logic.carddata import CardData
+from state_logic.game_manager import GameManagerLogic
 
 
 def generate_deck(shuffle: bool = False) -> list["CardData"]:
@@ -23,7 +25,9 @@ def generate_deck(shuffle: bool = False) -> list["CardData"]:
     return deck
 
 
-class GameplayLogic:
+class BlindLogic:
+    manager: GameManagerLogic
+    done: bool
     deck: list[CardData]
     hand: list[CardData]
     played: list[CardData]
@@ -32,10 +36,12 @@ class GameplayLogic:
     _num_hands: int
     _num_discards: int
     score: int
-    done: bool
 
-    def __init__(self):
-        self.deck = generate_deck(True)
+    def __init__(self, manager: GameManagerLogic):
+        self.done = False
+        self.manager = manager
+        self.deck = copy.deepcopy(manager.deck)
+        # random.shuffle(self.deck)
         self.deck_total = len(self.deck)
         self.hand = []
         self.played = []
@@ -44,7 +50,6 @@ class GameplayLogic:
         self._num_hands = 4
         self._num_discards = 30
         self.score = 0
-        self.done = False
 
     @property
     def is_deck_empty(self) -> bool:
@@ -127,23 +132,25 @@ class GameplayLogic:
             raise ValueError(f"Cannot play! No hands left! {self._num_hands=}")
         self.played = [card for card in self.hand if card.selected]
         valid_cards, hand_type = pk.get_hand_type(self.played)
-        print(hand_type)
-        # base_chips, base_mult = get_level(hand_type) # need to add base chips and base mult getter from hand type, probably new file with new class stored in game.py?
-        base_chips, base_mult = (0, 1)
+        base_chips = self.manager.levels[hand_type]["chips"]
+        base_mult = self.manager.levels[hand_type]["mult"]
         chips = base_chips
+        print(f"{base_chips=}")
         for card in valid_cards:
-            chips += min(card.get_rank.value + 2, 10)
-            if card.get_rank == Rank.ACE:
-                chips += 1
+            chips += card.chips
+            print(f"{card=},{card.chips}")
+        print(f"{chips=}")
         ###
         # Stand in for mult system. Will need to implement hand levels system
         # with unique base mults and chips. Will also have to implement joker
         # system here i think.
         ###
+        print(f"{base_mult=}")
+        self.score += chips * base_mult
+        print(f"{self.score=}")
         self._num_hands -= 1
         if self._num_hands == 0:
             self.done = True
-        self.score += chips * base_mult
         self.played.clear()
         return valid_cards
 
@@ -162,35 +169,13 @@ class GameplayLogic:
             raise ValueError(f"Must have at least one card selected!")
         if self._num_discards <= 0:
             raise ValueError(f"Cannot discard! No Discards left! {self._num_discards=}")
-        list = []
-        for card in self.hand:
-            if not card.selected:
-                list.append(card)
-        self.hand = list
+        self.hand = [card for card in self.hand if not card.selected]
         if not just_played:
             self._num_discards -= 1
-        # self.hand = [card for card in self.hand if not card.selected]
         # Should almost always call self.deal_to_hand() afterwards
 
-
-# if __name__ == "__main__":
-# logic = GameplayLogic() # comments are for unshuffled deck
-# logic.deal_to_hand()
-# print(f"{logic.hand=}")
-# logic.select_card(logic.hand[0])
-# logic.select_card(logic.hand[1])
-# logic.select_card(logic.hand[2])
-# logic.select_card(logic.hand[3])
-# logic.select_card(logic.hand[4])
-# logic.select_card(logic.hand[5])
-# logic.select_card(logic.hand[6])
-# logic.select_card(logic.hand[4])
-# for card in logic.hand:
-#     print(f"{card.selected=}")
-# print("score before: ", logic.score)
-# logic.play_hand()
-# print(f"{logic.played=}")
-# print("score after: ", logic.score) # should be 44
-# print(f"before: {logic.hand=}") # should have 5 cards
-# logic.deal_to_hand()
-# print(f"after: {logic.hand=}") # should have 8 cards
+    def end_game(self) -> None:
+        if self.done:
+            raise ValueError("Game is already over!")
+        self.done = True
+        # self.manager.deck = something? need someway to hand back modified deck if deck gets modified during game

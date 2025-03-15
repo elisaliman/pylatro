@@ -1,10 +1,11 @@
 import time
+import copy
 
 import pygame
 
 from assets.balatro_cards_data import CARD_HEI, CARD_WID
 from state_logic.carddata import CardData
-from state_logic.gameplay_logic import GameplayLogic
+from state_logic.blind_logic import BlindLogic
 from states.gui_elements.button import Button
 from states.gui_elements.card import Card
 from states.gui_elements.card_holder import CardHolder, DeckHolder
@@ -41,7 +42,7 @@ def generate_deck(deck_data: list[CardData]) -> list[Card]:
 
 
 class Gameplay(StateBase):
-    game_logic: GameplayLogic
+    game_logic: BlindLogic
     buttons: pygame.sprite.Group
     hand: CardHolder
     deck: DeckHolder
@@ -52,7 +53,9 @@ class Gameplay(StateBase):
 
     def __init__(self, game):
         super().__init__(game)
-        self.game_logic = GameplayLogic()
+        print(self.ctx)
+        manager = self.ctx["manager"]
+        self.game_logic = BlindLogic(manager)
         screen_w, screen_h = self.game.screen.get_size()
         x = screen_w // 2
         y = (
@@ -61,7 +64,7 @@ class Gameplay(StateBase):
         self.hand = CardHolder(CARD_WID * 8, (x, y), 8, "center")
         x += int(CARD_WID * 4.5) + CARD_WID * 3
         self.deck = DeckHolder(CARD_WID, (x, y), len(self.game_logic.deck), "left")
-        temp = self.game_logic.deck[-1]
+        temp = copy.deepcopy(self.game_logic.deck[-1])
         fake_card = Card(
             temp.get_suit, temp.get_rank, self.deck.rect.center, shown=False
         )
@@ -97,7 +100,7 @@ class Gameplay(StateBase):
             pygame.Color("crimson"),
             pygame.Color("white"),
         )
-        rank_rect = play_rect.scale_by(0.5)  # I base rank rect off of play rect
+        rank_rect = play_rect.scale_by(0.5, 0.5)  # I base rank rect off of play rect
         rank_rect.center = (self.hand.rect.centerx - rank_rect.w, rank_rect.centery)
         rank = Button(
             rank_rect,
@@ -107,7 +110,7 @@ class Gameplay(StateBase):
             pygame.Color("orange"),
             pygame.Color("white"),
         )
-        suit_rect = discard_rect.scale_by(0.5)  # I base suit rect off of discard rect
+        suit_rect = discard_rect.scale_by(0.5, 0.5)  # I base suit rect off of discard rect
         suit_rect.center = (self.hand.rect.centerx + suit_rect.w, suit_rect.centery)
         suit = Button(
             suit_rect,
@@ -176,7 +179,11 @@ class Gameplay(StateBase):
             self.sort_cards()
 
     def play_hand(self) -> None:
-        if self.game_logic.num_selected() > 0:
+        if (
+            self.game_logic.num_selected() > 0
+            and not self.play_anim_timer
+            and self.game_logic.num_hands > 0
+        ):
             played_card_datas = self.game_logic.play_hand()
             for card in self.hand.cards.sprites():
                 card_data = self.convert_to_card_data(card)
@@ -193,7 +200,11 @@ class Gameplay(StateBase):
                 it means the fucntion was called to rid the played cards, not
                 cards from hand
         """
-        if self.game_logic.num_selected() > 0 and self.game_logic.num_discards > 0:
+        if (
+            self.game_logic.num_selected() > 0
+            and self.game_logic.num_discards > 0
+            and not self.play_anim_timer
+        ):
             self.game_logic.discard(just_played)
             for card in self.hand.cards.sprites():
                 if card.selected:
@@ -216,7 +227,6 @@ class Gameplay(StateBase):
         """
         if event.type == pygame.QUIT:
             self.game.quit()
-
         if event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]:
             for button in self.buttons.sprites():
                 if isinstance(button, Button) and button.hovered:
@@ -232,7 +242,7 @@ class Gameplay(StateBase):
         if event.type == pygame.MOUSEBUTTONUP:
             if self.mouse_down_time is not None:
                 elapsed_time = time.time() - self.mouse_down_time
-                if elapsed_time < DRAG_THRESHOLD:
+                if elapsed_time < DRAG_THRESHOLD and self.held_card:
                     self.select_card(self.held_card)
                 self.mouse_down_time = None
             if self.held_card and self.held_card.follow_mouse:
@@ -241,7 +251,10 @@ class Gameplay(StateBase):
 
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
-                Pause(self.game).enter_state()
+                if self.held_card:
+                    self.held_card.toggle_mouse_follow()
+                    self.held_card = None
+                pause = Pause(self.game)
             if event.key == pygame.K_UP:
                 self.exit_state()
 
@@ -279,8 +292,8 @@ class Gameplay(StateBase):
         self.deck.update(dt, self.game_logic.deck_remaining)
         if self.play_anim_timer:
             if time.time() - self.play_anim_timer >= 0.5:
-                self.discard(True)
                 self.play_anim_timer = None
+                self.discard(True)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")

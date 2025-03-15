@@ -17,6 +17,8 @@ class Pause(StateBase):
             (0, 0, wid, hei),
         )
         self.shadow = shadow
+        self.game.prev_state.draw(self.game.screen)
+        self.game.screen.blit(self.shadow, (0, 0))
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -29,7 +31,4 @@ class Pause(StateBase):
                 self.exit_state()
 
     def draw(self, screen: pygame.surface.Surface) -> None:
-        screen.fill("darkgreen")
-        self.prev_state.draw(screen)
-        screen.blit(self.shadow, (0, 0))
         pygame.display.flip()

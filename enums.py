@@ -1,13 +1,10 @@
 from enum import Enum
-
-
 class Suit(Enum):
     # Ordered in order they appear in sprite sheet
     HEART = 0
     CLUB = 1
     DIAMOND = 2
     SPADE = 3
-
 
 class Rank(Enum):
     TWO = 0
@@ -23,7 +20,6 @@ class Rank(Enum):
     QUEEN = 10
     KING = 11
     ACE = 12
-
 
 class HandType(Enum):
     HIGH = 0

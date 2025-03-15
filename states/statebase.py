@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
-
 import pygame
 
 if TYPE_CHECKING:
@@ -8,15 +7,17 @@ if TYPE_CHECKING:
 
 
 class StateBase(ABC):
+
+    ctx: dict[str, dict] # keys: manager,
     def __init__(self, game: "Game"):
         self.game = game
-        self.prev_state = None
         self.font15 = pygame.font.Font("assets/balatro.ttf", 15)
         self.font24 = pygame.font.Font("assets/balatro.ttf", 24)
         self.font200 = pygame.font.Font("assets/balatro.ttf", 200)
         # TODO: figure out if there is a better method of resizing fonts
         # if so, implement that wherever needed like self.draw_text()
         self.ctx = {}
+        self.enter_state()
 
     @abstractmethod
     def handle_event(self, event: pygame.event.Event) -> None:
@@ -58,12 +59,12 @@ class StateBase(ABC):
         self.game.screen.blit(text_surface, position)
 
     def enter_state(self) -> None:
-        ctx = self.ctx
-        if len(self.game.state_stack) > 1:
-            self.prev_state = self.game.state_stack[-1]
+        """Enters game state. Called automatically when created"""
+        if len(self.game.state_stack) > 0:
+            self.game.prev_state = self.game.state_stack[-1]
+            self.ctx = self.game.prev_state.ctx
         self.game.state_stack.append(self)
         self.game.state = self
-        self.game.state.ctx = ctx
 
     def exit_state(self):
         ctx = self.ctx

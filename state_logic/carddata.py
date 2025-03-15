@@ -9,6 +9,7 @@ class CardData:
     def __init__(self, suit: Suit, rank: Rank):
         self._suit = suit
         self._rank = rank
+        self.chips = min(self._rank.value + 2, 10) if self._rank != Rank.ACE else 11
         self.selected = False
 
     @property

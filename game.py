@@ -15,6 +15,7 @@ class Game:
     deck: list["Card"]
     cards: "CardGroup"
     held_card: Card | None
+    prev_state: "StateBase"
     state_stack: list["StateBase"]
     state: "StateBase"
     dx: float
@@ -25,8 +26,8 @@ class Game:
         self.screen = screen
         self.clock = pygame.time.Clock()
         self.done = False
-        self.state_stack = [Title(self)]
-        self.state = self.state_stack[-1]
+        self.state_stack = []
+        self.state = Title(self)
         self.prev_time = 0.0
         self.fps = 120
 

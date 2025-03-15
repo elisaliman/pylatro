@@ -103,6 +103,5 @@ class DeckHolder(CardHolder):
         super().__init__(w, center_pos, num_slots, text_side)
 
     def update(self, dt: float, deck_remaining: int | None = None):
-        if deck_remaining:
-            text = f"{deck_remaining}/{self.num_slots}"
-            self.text_image = self.font.render(text, True, "white")
+        text = f"{deck_remaining}/{self.num_slots}"
+        self.text_image = self.font.render(text, True, "white")

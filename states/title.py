@@ -2,6 +2,8 @@ import pygame
 
 from states.gameplay import Gameplay
 from states.statebase import StateBase
+from state_logic.game_manager import GameManagerLogic
+from enums import HandType
 
 
 class Title(StateBase):
@@ -14,6 +16,7 @@ class Title(StateBase):
         self.title = self.font200.render("Balatro", True, "blue")
         self.rect = pygame.Rect(0, 0, 800, 400)
         self.rect.center = self.screen_center
+        self.ctx = {"manager": GameManagerLogic()} ###TODO: this means everytime the title screen is created, a new "Profile" is made
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -23,7 +26,7 @@ class Title(StateBase):
             self.game.quit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
-                Gameplay(self.game).enter_state()
+                Gameplay(self.game)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
