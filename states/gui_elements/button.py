@@ -1,10 +1,16 @@
 import pygame
 
+
 class Button(pygame.sprite.Sprite):
-    def __init__(self, rect, text, callback,
-                 font=None,
-                 bg_color=(70, 70, 70),
-                 text_color=(255, 255, 255)):
+    def __init__(
+        self,
+        rect,
+        text,
+        callback,
+        font=None,
+        bg_color=(70, 70, 70),
+        text_color=(255, 255, 255),
+    ):
         """
         Initializes a new Button.
 
@@ -34,12 +40,15 @@ class Button(pygame.sprite.Sprite):
         Renders the button's appearance on its image surface.
         """
         # Choose color based on whether the button is hovered
-        pygame.draw.rect(self.image, self.color, self.image.get_rect(), border_radius=10)
+        pygame.draw.rect(
+            self.image, self.color, self.image.get_rect(), border_radius=10
+        )
         # Render the text and center it on the button
         text_surf = self.font.render(self.text, True, self.text_color)
-        text_rect = text_surf.get_rect(center=(self.rect.width // 2, self.rect.height // 2))
+        text_rect = text_surf.get_rect(
+            center=(self.rect.width // 2, self.rect.height // 2)
+        )
         self.image.blit(text_surf, text_rect)
-
 
     def update(self, dt: float):
         """

@@ -10,6 +10,7 @@ try:
 except pygame.error:
     print("Error loading sprite sheet!")
 
+
 def get_cardf_sprite(suit: Suit, num: Rank) -> pygame.surface.Surface:
     """
     Gets sprite image based on card value and suit
@@ -28,6 +29,7 @@ def get_cardf_sprite(suit: Suit, num: Rank) -> pygame.surface.Surface:
         bad_surf = pygame.Surface((FRAME_WIDTH, FRAME_HEIGHT))
         bad_surf.fill("yellow")
         return bad_surf
+
 
 def get_cardb_sprite() -> pygame.surface.Surface:
     sheet = back

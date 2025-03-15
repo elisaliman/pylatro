@@ -1,6 +1,7 @@
 import pygame
 from states.gui_elements.card import Card, CardGroup, CARD_WID, CARD_HEI
 
+
 class CardHolder(pygame.sprite.Sprite):
     w: int
     h: int
@@ -11,7 +12,6 @@ class CardHolder(pygame.sprite.Sprite):
     pos: tuple[int, int]
     text_pos: tuple[int, int]
     font: pygame.font.Font
-
 
     def __init__(self, w: int, pos: tuple[int, int], num_slots: int, text_side: str):
         self.w = w
@@ -48,7 +48,6 @@ class CardHolder(pygame.sprite.Sprite):
         if text_side == "center":
             offset_x = self.text_image.get_size()[0] // 2
             self.text_pos = self.text_pos[0] - offset_x, self.text_pos[1]
-
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.blit(self.image, self.pos)

@@ -1,5 +1,7 @@
 from enums import Suit, Rank
-class CardData():
+
+
+class CardData:
     suit: Suit
     rank: Rank
     selected: bool
@@ -23,6 +25,9 @@ class CardData():
         if not isinstance(other, CardData):
             return False
         return self._suit == other.get_suit and self._rank == other._rank
+
+    def __hash__(self):
+        return hash((self._suit, self._rank))
 
     def __repr__(self):
         return f"CD: {self._rank.name.capitalize()} of {self._suit.name.capitalize()}s"

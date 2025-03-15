@@ -2,6 +2,7 @@ import pygame
 from states.statebase import StateBase
 from states.gameplay import Gameplay
 
+
 class Title(StateBase):
     title: pygame.surface.Surface
     title_rect: pygame.surface.Surface

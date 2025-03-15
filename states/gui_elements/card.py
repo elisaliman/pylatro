@@ -6,6 +6,7 @@ from assets.balatro_cards_data import CARD_WID, CARD_HEI
 CARD_WID = 71
 CARD_HEI = 95
 
+
 class Card(pygame.sprite.Sprite):
     image: pygame.Surface
     rect: pygame.Rect
@@ -18,7 +19,9 @@ class Card(pygame.sprite.Sprite):
     follow_mouse: bool
     selected: bool
 
-    def __init__(self, suit: Suit, rank: Rank, pos: tuple[int, int], *groups: pygame.sprite.Group):
+    def __init__(
+        self, suit: Suit, rank: Rank, pos: tuple[int, int], *groups: pygame.sprite.Group
+    ):
         super().__init__(*groups)
         self.shown = True
         self.suit = suit
@@ -27,8 +30,12 @@ class Card(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
         card_image = pygame.Rect(0, 0, wid, hei)
-        pygame.draw.rect(self.image, pygame.Color("grey90"), card_image, border_radius=7)
-        pygame.draw.rect(self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7)
+        pygame.draw.rect(
+            self.image, pygame.Color("grey90"), card_image, border_radius=7
+        )
+        pygame.draw.rect(
+            self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7
+        )
         self.front = assets.get_cardf_sprite(self.suit, self.rank)
         self.back = assets.get_cardb_sprite()
         self.image.blit(self.front, (0, 0))
@@ -46,8 +53,12 @@ class Card(pygame.sprite.Sprite):
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
         card_image = pygame.Rect(0, 0, wid, hei)
-        pygame.draw.rect(self.image, pygame.Color("grey90"), card_image, border_radius=7)
-        pygame.draw.rect(self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7)
+        pygame.draw.rect(
+            self.image, pygame.Color("grey90"), card_image, border_radius=7
+        )
+        pygame.draw.rect(
+            self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7
+        )
         if self.shown:
             self.image.blit(self.front, (0, 0))
         else:
@@ -148,6 +159,7 @@ class CardGroup(pygame.sprite.Group):
     """
     pygame Group class that allows extra functionality
     """
+
     # Only reason for this overwrite is to enforce return type of Card for mypy
     def sprites(self) -> list[Card]:
         return super().sprites()

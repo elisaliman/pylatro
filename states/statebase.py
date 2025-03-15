@@ -7,13 +7,13 @@ if TYPE_CHECKING:
 
 
 class StateBase(ABC):
-    def __init__(self, game: 'Game'):
+    def __init__(self, game: "Game"):
         self.game = game
         self.prev_state = None
         self.font15 = pygame.font.Font("assets/balatro.ttf", 15)
         self.font24 = pygame.font.Font("assets/balatro.ttf", 24)
         self.font200 = pygame.font.Font("assets/balatro.ttf", 200)
-        #TODO: figure out if there is a better method of resizing fonts
+        # TODO: figure out if there is a better method of resizing fonts
         # if so, implement that wherever needed like self.draw_text()
         self.ctx = {}
 
@@ -37,7 +37,13 @@ class StateBase(ABC):
         """
         pass
 
-    def draw_text(self, text: str, font: pygame.font.Font, position: tuple[int, int], color: pygame.Color) -> None:
+    def draw_text(
+        self,
+        text: str,
+        font: pygame.font.Font,
+        position: tuple[int, int],
+        color: pygame.Color,
+    ) -> None:
         """
         Renders text on the screen.
 
@@ -63,4 +69,3 @@ class StateBase(ABC):
         self.game.state_stack.pop()
         self.game.state = self.game.state_stack[-1]
         self.game.state.ctx = ctx
-

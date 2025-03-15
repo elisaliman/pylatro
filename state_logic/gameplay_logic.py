@@ -1,11 +1,10 @@
 from enums import Suit, Rank, HandType
 import random
-from states.gui_elements.card import Card
 from state_logic.carddata import CardData
 import state_logic.poker_hand_type as pk
 
 
-def generate_deck(shuffle: bool=False) -> list['CardData']:
+def generate_deck(shuffle: bool = False) -> list["CardData"]:
     """
     Creates a standard deck of cards. Should be treated as a stack
 
@@ -22,14 +21,15 @@ def generate_deck(shuffle: bool=False) -> list['CardData']:
         random.shuffle(deck)
     return deck
 
-class GameplayLogic():
+
+class GameplayLogic:
     deck: list[CardData]
     hand: list[CardData]
     played: list[CardData]
     jokers: list[CardData]
     hand_size: int
-    num_hands: int
-    num_discards: int
+    _num_hands: int
+    _num_discards: int
     score: int
     done: bool
 
@@ -39,8 +39,8 @@ class GameplayLogic():
         self.played = []
         self.jokers = []
         self.hand_size = 8
-        self.num_hands = 4
-        self.num_discards = 30
+        self._num_hands = 4
+        self._num_discards = 30
         self.score = 0
         self.done = False
 
@@ -53,12 +53,23 @@ class GameplayLogic():
         """
         return len(self.deck) == 0
 
+    @property
+    def num_hands(self) -> int:
+        return self._num_hands
+
+    @property
+    def num_discards(self) -> int:
+        return self._num_discards
+
     def sort_cards(self, by_rank: bool) -> None:
         if by_rank:
-            self.hand = sorted(self.hand, key=lambda card: (-card.get_rank.value, card.get_suit.value))
+            self.hand = sorted(
+                self.hand, key=lambda card: (-card.get_rank.value, card.get_suit.value)
+            )
         else:
-            self.hand = sorted(self.hand, key=lambda card: (card.get_suit.value, -card.get_rank.value))
-        print(self.hand)
+            self.hand = sorted(
+                self.hand, key=lambda card: (card.get_suit.value, -card.get_rank.value)
+            )
 
     def num_selected(self) -> int:
         """
@@ -70,18 +81,6 @@ class GameplayLogic():
                 count += 1
         return count
 
-    def convert_to_card_data(self, gui_card: Card) -> CardData:
-        """
-        Gets CardData in hand that matches the GUI Card
-        """
-        ###TODO: Will need to change this bevuase you can have copies of the same card
-        ### Will probably need to use indexing and sort the cards in game_logic
-        suit, rank = gui_card.suit, gui_card.rank
-        for card_data in self.hand:
-            if card_data.get_suit == suit and card_data.get_rank == rank:
-                return card_data
-        raise ValueError("Matching card not found in hand")
-
     def deal_to_hand(self) -> None:
         """
         Deals cards from deck into hand
@@ -92,8 +91,8 @@ class GameplayLogic():
             raise ValueError("Cannot deal to a full hand!")
         for _ in range(hand_num_empty):
             if not self.is_deck_empty:
-                delt = self.deck.pop()
-                self.hand.append(delt)
+                dealt = self.deck.pop()
+                self.hand.append(dealt)
 
     def select_card(self, card: CardData) -> None:
         """
@@ -107,77 +106,85 @@ class GameplayLogic():
         elif self.num_selected() < 5:
             card.selected = True
 
-    def play_hand(self) -> None:
+    def play_hand(self) -> list[CardData]:
         """
         Plays selected cards for points.
         Raises ValueError if less than one card is selected
+        Raises ValueError if not enough hands left to use
+
+        Retuns (list[CardData]): list of CardData in order for GUI to know which
+            cards were actually counted for points
         """
         if self.num_selected() == 0:
             raise ValueError(f"Must have at least one card selected!")
-        for card in self.hand:
-            if card.selected:
-                self.played.append(card)
-        self.hand = [card for card in self.hand if not card.selected]
-        # Currenlty plays all cards. Will need to implement poker hands to
-        # play highest ranked hand of cards
-        #sudo code:
-        self.played, hand_type = pk.get_hand_type(self.hand)
-        #base_chips, base_mult = get_level(hand_type) # need to add base chips and base mult getter from hand type, probably new file with new class stored in game.py?
-        base_chips, base_mult = (0, 0)
+        if self._num_hands <= 0:
+            raise ValueError(f"Cannot play! No hands left! {self._num_hands=}")
+        self.played = [card for card in self.hand if card.selected]
+        valid_cards, hand_type = pk.get_hand_type(self.played)
+        print(hand_type)
+        # base_chips, base_mult = get_level(hand_type) # need to add base chips and base mult getter from hand type, probably new file with new class stored in game.py?
+        base_chips, base_mult = (0, 1)
         chips = base_chips
-        for card in self.played:
-            chips += min(card.get_rank.value + 2, 11)
+        for card in valid_cards:
+            chips += min(card.get_rank.value + 2, 10)
+            if card.get_rank == Rank.ACE:
+                chips += 1
         ###
         # Stand in for mult system. Will need to implement hand levels system
         # with unique base mults and chips. Will also have to implement joker
         # system here i think.
         ###
-        self.num_hands -= 1
-        if self.num_hands == 0:
+        self._num_hands -= 1
+        if self._num_hands == 0:
             self.done = True
         self.score += chips * base_mult
-        self.played = []
+        self.played.clear()
+        return valid_cards
 
-    def discard(self) -> None:
+    def discard(self, just_played:bool=False) -> None:
         """
         Discards selected cards
         Raises ValueError if called with no selected cards or if no discards
         left
+
+        Args:
+            just_played (bool, optional): if true, wont deduct a discard as
+                it means the fucntion was called to rid the played cards, not
+                cards from hand
         """
-        if self.num_selected() == 0:
+        if self.num_selected() <= 0:
             raise ValueError(f"Must have at least one card selected!")
-        if self.num_discards == 0:
-            raise ValueError(f"Cannot discard! No Discards left!")
+        if self._num_discards <= 0:
+            raise ValueError(f"Cannot discard! No Discards left! {self._num_discards=}")
         list = []
         for card in self.hand:
             if not card.selected:
                 list.append(card)
         self.hand = list
-        self.num_discards -= 1
+        if not just_played:
+            self._num_discards -= 1
         # self.hand = [card for card in self.hand if not card.selected]
         # Should almost always call self.deal_to_hand() afterwards
 
+
 # if __name__ == "__main__":
-    # logic = GameplayLogic() # comments are for unshuffled deck
-    # logic.deal_to_hand()
-    # print(f"{logic.hand=}")
-    # logic.select_card(logic.hand[0])
-    # logic.select_card(logic.hand[1])
-    # logic.select_card(logic.hand[2])
-    # logic.select_card(logic.hand[3])
-    # logic.select_card(logic.hand[4])
-    # logic.select_card(logic.hand[5])
-    # logic.select_card(logic.hand[6])
-    # logic.select_card(logic.hand[4])
-    # for card in logic.hand:
-    #     print(f"{card.selected=}")
-    # print("score before: ", logic.score)
-    # logic.play_hand()
-    # print(f"{logic.played=}")
-    # print("score after: ", logic.score) # should be 44
-    # print(f"before: {logic.hand=}") # should have 5 cards
-    # logic.deal_to_hand()
-    # print(f"after: {logic.hand=}") # should have 8 cards
-
-
-
+# logic = GameplayLogic() # comments are for unshuffled deck
+# logic.deal_to_hand()
+# print(f"{logic.hand=}")
+# logic.select_card(logic.hand[0])
+# logic.select_card(logic.hand[1])
+# logic.select_card(logic.hand[2])
+# logic.select_card(logic.hand[3])
+# logic.select_card(logic.hand[4])
+# logic.select_card(logic.hand[5])
+# logic.select_card(logic.hand[6])
+# logic.select_card(logic.hand[4])
+# for card in logic.hand:
+#     print(f"{card.selected=}")
+# print("score before: ", logic.score)
+# logic.play_hand()
+# print(f"{logic.played=}")
+# print("score after: ", logic.score) # should be 44
+# print(f"before: {logic.hand=}") # should have 5 cards
+# logic.deal_to_hand()
+# print(f"after: {logic.hand=}") # should have 8 cards

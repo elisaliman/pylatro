@@ -8,12 +8,13 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from states.statebase import StateBase  # Import only for type checking
 
-class Game():
-    deck: list['Card']
-    cards: 'CardGroup'
+
+class Game:
+    deck: list["Card"]
+    cards: "CardGroup"
     held_card: Card | None
-    state_stack: list['StateBase']
-    state: 'StateBase'
+    state_stack: list["StateBase"]
+    state: "StateBase"
     dx: float
     prev_time: float
     fps: int
@@ -54,7 +55,6 @@ class Game():
         dt = now - self.prev_time
         self.prev_time = now
         self.state.update(dt)
-
 
     def draw(self):
         """

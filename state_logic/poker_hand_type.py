@@ -1,6 +1,5 @@
 from state_logic.carddata import CardData
 from enums import Suit, Rank, HandType
-from operator import attrgetter
 from collections import Counter
 
 
@@ -19,13 +18,15 @@ def get_hand_type(cards: list[CardData]) -> tuple[list[CardData], HandType]:
     # game
 
     # Sorts cards by descending rank to make checks easier
-    key_attr = attrgetter("get_rank.value")
-    cards = sorted(cards, key=key_attr, reverse=True)
+    print(cards)
+    cards = sorted(cards, key=lambda card: (-card.get_rank.value, card.get_suit.value))
     card_len = len(cards)
-    flush = get_flush(cards)
 
     # Checks are ordered in order of highest to lowest priority hand type
-    if card_len == 5: #WILL HAVE TO UPDATE THESE CHECKS
+    if (
+        card_len == 5
+    ):  # WILL HAVE TO UPDATE THESE CHECKS for jokers that reduce flush + straight size
+        flush = get_flush(cards)
         # Flush Five
         if (five_of_a_kind := get_n_of_a_kind(cards, 5)) and five_of_a_kind == flush:
             return five_of_a_kind, HandType.FIVE_F
@@ -37,7 +38,7 @@ def get_hand_type(cards: list[CardData]) -> tuple[list[CardData], HandType]:
         if five_of_a_kind:
             return five_of_a_kind, HandType.FIVE
 
-        if (flush := get_flush(cards)) and (straight := get_straight(cards)):
+        if flush and (straight := get_straight(cards)):
             if is_royal_flush(straight):
                 return flush, HandType.ROYAL_F
             return flush, HandType.STRAIGHT_F
@@ -47,13 +48,13 @@ def get_hand_type(cards: list[CardData]) -> tuple[list[CardData], HandType]:
             return four_of_a_kind, HandType.FOUR
 
     if card_len == 5:
-        if full_house: # Assigned when checking flush house
+        if full_house:  # Assigned when checking flush house
             return full_house, HandType.FULL
 
-        if flush: # Assigned at start of checks
+        if flush:  # Assigned at start of checks
             return flush, HandType.FLUSH
 
-        if straight: # Assigned when checking straight flush
+        if straight := get_straight(cards):
             return straight, HandType.STRAIGHT
 
     if card_len >= 3:
@@ -61,13 +62,17 @@ def get_hand_type(cards: list[CardData]) -> tuple[list[CardData], HandType]:
             return three_of_a_kind, HandType.THREE
 
     if card_len >= 4:
-        pass #If two pair
+        if two_pair := get_n_of_a_kind(cards, 2):
+            print(f"{two_pair=}")
+            if len(two_pair) == 4:
+                return two_pair, HandType.TWOPAIR
 
     if card_len >= 2:
         if pair := get_n_of_a_kind(cards, 2):
             return pair, HandType.PAIR
 
     return [cards[0]], HandType.HIGH
+
 
 def get_flush(cards: list[CardData]) -> list[CardData]:
     """
@@ -77,12 +82,15 @@ def get_flush(cards: list[CardData]) -> list[CardData]:
     ###TODO: Add a flush_size param or something similar
     FLUSH_REQ = 5
     if len(cards) < FLUSH_REQ:
-        raise ValueError(f"Hand size must be at least {FLUSH_REQ} to form a flush. Current hand size: {len(cards)}")
+        raise ValueError(
+            f"Hand size must be at least {FLUSH_REQ} to form a flush. Current hand size: {len(cards)}"
+        )
     suit_counter = Counter(card.get_suit for card in cards)
     flush_suit, count = suit_counter.most_common(1)[0]
     if count >= FLUSH_REQ:
         return [card for card in cards if card.get_suit == flush_suit]
     return []
+
 
 def get_full_house(cards: list[CardData]) -> list[CardData]:
     """
@@ -90,7 +98,9 @@ def get_full_house(cards: list[CardData]) -> list[CardData]:
     Raises ValueError if cards length is too small to form a full house
     """
     if len(cards) < 5:
-        raise ValueError(f"Hand size must be at least 5 to form a full house. Current hand size: {len(cards)}")
+        raise ValueError(
+            f"Hand size must be at least 5 to form a full house. Current hand size: {len(cards)}"
+        )
     rank_counter = Counter(card.get_rank for card in cards)
     triple_rank = None
     pair_rank = None
@@ -110,6 +120,7 @@ def get_full_house(cards: list[CardData]) -> list[CardData]:
     pair_cards = [card for card in cards if card.get_rank == pair_rank][:2]
     return triple_cards + pair_cards
 
+
 def get_straight(cards: list[CardData]) -> list[CardData]:
     """
     Checks for a straight in cards.
@@ -118,13 +129,20 @@ def get_straight(cards: list[CardData]) -> list[CardData]:
     ###TODO: Add a straight_size param or something similar
     STRAIGHT_REQ = 5
     if len(cards) < STRAIGHT_REQ:
-        raise ValueError(f"Hand size must be at least {STRAIGHT_REQ} to form a straight. Current hand size: {len(cards)}")
+        raise ValueError(
+            f"Hand size must be at least {STRAIGHT_REQ} to form a straight. Current hand size: {len(cards)}"
+        )
     played = []
-    for idx, card in enumerate(cards[1:STRAIGHT_REQ]): #WILL ONLY CHECK FIRST 4 CARDS IF SET TO 4, WILL NEED TO LET IT ALSO CHECK THE LAST 4 CARDS EVENTUALLY
-        if card.get_rank.value - cards[idx - 1].get_rank.value != 1:
+    for idx, card in enumerate(
+        cards[1:STRAIGHT_REQ]
+    ):  # WILL ONLY CHECK FIRST 4 CARDS IF SET TO 4, WILL NEED TO LET IT ALSO CHECK THE LAST 4 CARDS EVENTUALLY
+        if cards[idx].get_rank.value - card.get_rank.value != 1:
             return []
         played.append(card)
+    if played:
+        played.insert(0, cards[0])
     return played
+
 
 def is_royal_flush(straight_flush: list[CardData]) -> bool:
     """
@@ -144,6 +162,6 @@ def get_n_of_a_kind(cards: list[CardData], n: int) -> list[CardData]:
 
     Return (list[CardData]): List of cards that are n of a kind
     """
-    counter = Counter(cards)
+    counter = Counter(card.get_rank for card in cards)
     kinds = {card for card, count in counter.items() if count == n}
-    return [card for card in cards if card in kinds]
+    return [card for card in cards if card.get_rank in kinds]
