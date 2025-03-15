@@ -1,9 +1,11 @@
-import pygame
 import sys
 import time
+from typing import TYPE_CHECKING
+
+import pygame
+
 from states.gui_elements.card import Card, CardGroup
 from states.title import Title
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from states.statebase import StateBase  # Import only for type checking

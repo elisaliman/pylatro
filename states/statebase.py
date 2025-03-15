@@ -1,6 +1,7 @@
-import pygame
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
+
+import pygame
 
 if TYPE_CHECKING:
     from game import Game  # Import only for type checking

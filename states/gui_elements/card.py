@@ -1,7 +1,8 @@
 import pygame
-from enums import Suit, Rank
+
 import assets.balatro_cards_data as assets
-from assets.balatro_cards_data import CARD_WID, CARD_HEI
+from assets.balatro_cards_data import CARD_HEI, CARD_WID
+from enums import Rank, Suit
 
 CARD_WID = 71
 CARD_HEI = 95
@@ -20,7 +21,12 @@ class Card(pygame.sprite.Sprite):
     selected: bool
 
     def __init__(
-        self, suit: Suit, rank: Rank, pos: tuple[int, int], shown: bool=True, *groups: pygame.sprite.Group
+        self,
+        suit: Suit,
+        rank: Rank,
+        pos: tuple[int, int],
+        shown: bool = True,
+        *groups: pygame.sprite.Group,
     ):
         super().__init__(*groups)
         self.suit = suit

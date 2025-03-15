@@ -62,7 +62,9 @@ class Gameplay(StateBase):
         x += int(CARD_WID * 4.5) + CARD_WID * 3
         self.deck = DeckHolder(CARD_WID, (x, y), len(self.game_logic.deck), "left")
         temp = self.game_logic.deck[-1]
-        fake_card = Card(temp.get_suit, temp.get_rank, self.deck.rect.center, shown=False)
+        fake_card = Card(
+            temp.get_suit, temp.get_rank, self.deck.rect.center, shown=False
+        )
         self.deck.add_card(fake_card)
         self.held_card = None
         self.sort_by_rank = True
@@ -182,7 +184,7 @@ class Gameplay(StateBase):
                     card.set_target_pos((card.rect.centerx, card.rect.centery - 100))
             self.play_anim_timer = time.time()
 
-    def discard(self, just_played: bool=False) -> None:
+    def discard(self, just_played: bool = False) -> None:
         """
         Discards selected cards
 
@@ -272,7 +274,7 @@ class Gameplay(StateBase):
             if isinstance(button, Button):
                 button.update(dt)
         for card in self.hand.cards.sprites():
-            card.update(dt)  # pos should be propper position in hand table
+            card.update(dt)
         self.hand.update(dt)
         self.deck.update(dt, self.game_logic.deck_remaining)
         if self.play_anim_timer:

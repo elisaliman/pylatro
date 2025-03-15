@@ -1,4 +1,5 @@
 import os
+
 import pygame
 
 # Force low-resolution mode (disable HiDPI scaling)

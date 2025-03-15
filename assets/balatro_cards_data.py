@@ -1,5 +1,6 @@
 import pygame
-from enums import Suit, Rank
+
+from enums import Rank, Suit
 
 CARD_WID, CARD_HEI = 71, 95
 FRAME_WIDTH, FRAME_HEIGHT = 142, 190

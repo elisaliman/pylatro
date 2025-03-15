@@ -1,6 +1,7 @@
 import pygame
-from states.statebase import StateBase
+
 from states.gameplay import Gameplay
+from states.statebase import StateBase
 
 
 class Title(StateBase):

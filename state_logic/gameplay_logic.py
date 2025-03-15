@@ -1,7 +1,8 @@
-from enums import Suit, Rank, HandType
 import random
-from state_logic.carddata import CardData
+
 import state_logic.poker_hand_type as pk
+from enums import HandType, Rank, Suit
+from state_logic.carddata import CardData
 
 
 def generate_deck(shuffle: bool = False) -> list["CardData"]:
@@ -146,7 +147,7 @@ class GameplayLogic:
         self.played.clear()
         return valid_cards
 
-    def discard(self, just_played:bool=False) -> None:
+    def discard(self, just_played: bool = False) -> None:
         """
         Discards selected cards
         Raises ValueError if called with no selected cards or if no discards

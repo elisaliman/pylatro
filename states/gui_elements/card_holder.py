@@ -1,6 +1,9 @@
-import pygame
-from states.gui_elements.card import Card, CardGroup, CARD_WID, CARD_HEI
 from typing import override
+
+import pygame
+
+from states.gui_elements.card import CARD_HEI, CARD_WID, Card, CardGroup
+
 
 class CardHolder(pygame.sprite.Sprite):
     w: int
@@ -13,8 +16,9 @@ class CardHolder(pygame.sprite.Sprite):
     text_pos: tuple[int, int]
     font: pygame.font.Font
 
-
-    def __init__(self, w: int, center_pos: tuple[int, int], num_slots: int, text_side: str):
+    def __init__(
+        self, w: int, center_pos: tuple[int, int], num_slots: int, text_side: str
+    ):
         self.w = w
         self.h = CARD_HEI + 10
         self.image = pygame.Surface((self.w, self.h), pygame.SRCALPHA)
@@ -47,14 +51,12 @@ class CardHolder(pygame.sprite.Sprite):
         self.font = pygame.font.Font("assets/balatro.ttf", 15)
         text = f"{len(self.cards.sprites())}/{self.num_slots}"
         self.text_image = self.font.render(text, True, "white")
-        if text_side == "center": # middles text if text is in center
+        if text_side == "center":  # middles text if text is in center
             offset_x = self.text_image.get_size()[0] // 2
             self.text_pos = self.text_pos[0] - offset_x, self.text_pos[1]
         if text_side == "right":
             offset_x = self.text_image.get_size()[0]
             self.text_pos = self.text_pos[0] - offset_x, self.text_pos[1]
-
-
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.blit(self.image, self.rect.topleft)
@@ -78,8 +80,7 @@ class CardHolder(pygame.sprite.Sprite):
         """
         self.num_slots += 1
 
-
-    def update(self, dt: float, ctx:int|None=None) -> None:
+    def update(self, dt: float, ctx: int | None = None) -> None:
         """
         Updates card count text
         """
@@ -90,14 +91,18 @@ class CardHolder(pygame.sprite.Sprite):
         text = f"{count}/{self.num_slots}"
         self.text_image = self.font.render(text, True, "white")
 
+
 class DeckHolder(CardHolder):
     """
     Special subclass to override how the text is displayed for the deck
     """
-    def __init__(self, w: int, center_pos: tuple[int, int], num_slots: int, text_side: str):
+
+    def __init__(
+        self, w: int, center_pos: tuple[int, int], num_slots: int, text_side: str
+    ):
         super().__init__(w, center_pos, num_slots, text_side)
 
-    def update(self, dt: float, deck_remaining: int|None=None):
+    def update(self, dt: float, deck_remaining: int | None = None):
         if deck_remaining:
             text = f"{deck_remaining}/{self.num_slots}"
             self.text_image = self.font.render(text, True, "white")
