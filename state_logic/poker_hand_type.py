@@ -19,7 +19,6 @@ def get_hand_type(cards: list[CardData]) -> tuple[list[CardData], HandType]:
     # game
 
     # Sorts cards by descending rank to make checks easier
-    print(cards)
     cards = sorted(cards, key=lambda card: (-card.get_rank.value, card.get_suit.value))
     card_len = len(cards)
 
@@ -64,7 +63,6 @@ def get_hand_type(cards: list[CardData]) -> tuple[list[CardData], HandType]:
 
     if card_len >= 4:
         if two_pair := get_n_of_a_kind(cards, 2):
-            print(f"{two_pair=}")
             if len(two_pair) == 4:
                 return two_pair, HandType.TWOPAIR
 

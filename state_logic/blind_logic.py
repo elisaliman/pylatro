@@ -26,6 +26,7 @@ def generate_deck(shuffle: bool = False) -> list["CardData"]:
 
 
 class BlindLogic:
+    blind: int
     manager: GameManagerLogic
     done: bool
     deck: list[CardData]
@@ -41,7 +42,8 @@ class BlindLogic:
         self.done = False
         self.manager = manager
         self.deck = copy.deepcopy(manager.deck)
-        # random.shuffle(self.deck)
+        random.shuffle(self.deck)
+        self.blind = self.manager.blinds.pop()
         self.deck_total = len(self.deck)
         self.hand = []
         self.played = []
@@ -117,7 +119,18 @@ class BlindLogic:
         elif self.num_selected() < 5:
             card.selected = True
 
-    def play_hand(self) -> list[CardData]:
+    def get_hand_type(self) -> HandType:
+        """
+        Gets the hand type of the current selcted cards. Strictly used to give
+        this information to the GUI
+        """
+        if self.num_selected() == 0:
+            return HandType.EMPTY
+        selected = [card for card in self.hand if card.selected]
+        _, hand = pk.get_hand_type(selected)
+        return hand
+
+    def play_hand(self) -> tuple[list[CardData], HandType]:
         """
         Plays selected cards for points.
         Raises ValueError if less than one card is selected
@@ -135,24 +148,21 @@ class BlindLogic:
         base_chips = self.manager.levels[hand_type]["chips"]
         base_mult = self.manager.levels[hand_type]["mult"]
         chips = base_chips
-        print(f"{base_chips=}")
         for card in valid_cards:
             chips += card.chips
-            print(f"{card=},{card.chips}")
-        print(f"{chips=}")
         ###
         # Stand in for mult system. Will need to implement hand levels system
         # with unique base mults and chips. Will also have to implement joker
         # system here i think.
         ###
-        print(f"{base_mult=}")
         self.score += chips * base_mult
-        print(f"{self.score=}")
         self._num_hands -= 1
-        if self._num_hands == 0:
-            self.done = True
         self.played.clear()
-        return valid_cards
+        if self.score >= self.blind:
+            self.end_game(won=True)
+        if self._num_hands == 0:
+            self.end_game(won=False)
+        return (valid_cards, hand_type)
 
     def discard(self, just_played: bool = False) -> None:
         """
@@ -174,8 +184,18 @@ class BlindLogic:
             self._num_discards -= 1
         # Should almost always call self.deal_to_hand() afterwards
 
-    def end_game(self) -> None:
+    def end_game(self, won: bool=False) -> None:
+        """
+        Ends blind
+
+        Args:
+            won (bool, optional): By default False, but True if game was won
+        """
         if self.done:
             raise ValueError("Game is already over!")
         self.done = True
+        if won:
+            print(f"You won! Entering shop...")
+        else:
+            print("Game Over! :(")
         # self.manager.deck = something? need someway to hand back modified deck if deck gets modified during game

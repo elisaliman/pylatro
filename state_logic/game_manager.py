@@ -39,6 +39,9 @@ def create_levels() -> dict[HandType, dict[str, int]]:
 }
         return levels
 
+# def create_blinds() -> list[tuple[int, str]]:
+#     pass
+
 class GameManagerLogic():
     """
     A class to manage a profile's overall progression and stats.
@@ -48,6 +51,8 @@ class GameManagerLogic():
 
     deck: list["CardData"] # Stores sorted game deck. (To be shuffled on gameplay)
     levels: dict[HandType, dict[str, int]] # Hand levels and score
+    blinds: list[int]
     def __init__(self):
         self.deck = generate_deck()
         self.levels = create_levels()
+        self.blinds = [10000]

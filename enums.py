@@ -22,16 +22,25 @@ class Rank(Enum):
     ACE = 12
 
 class HandType(Enum):
-    HIGH = 0
-    PAIR = 1
-    TWOPAIR = 2
-    THREE = 3
-    STRAIGHT = 4
-    FLUSH = 5
-    FULL = 6
-    FOUR = 7
-    STRAIGHT_F = 8
-    ROYAL_F = 9
-    FIVE = 10
-    HOUSE_F = 11
-    FIVE_F = 12
+    HIGH = (0, "High Card")
+    PAIR = (1, "Pair")
+    TWOPAIR = (2, "Two Pair")
+    THREE = (3, "Three of a Kind")
+    STRAIGHT = (4, "Straight")
+    FLUSH = (5, "Flush")
+    FULL = (6, "Full House")
+    FOUR = (7, "Four of a Kind")
+    STRAIGHT_F = (8, "Straight Flush")
+    ROYAL_F = (9, "Royal Flush")
+    FIVE = (10, "Five of a Kind")
+    HOUSE_F = (11, "Flush House")
+    FIVE_F = (12, "Flush Five")
+    EMPTY = (13, "")
+
+    @property
+    def rank(self):
+        return self.value[0]
+
+    @property
+    def name(self):
+        return self.value[1]

@@ -11,6 +11,7 @@ from states.gui_elements.card import Card
 from states.gui_elements.card_holder import CardHolder, DeckHolder
 from states.pause import Pause
 from states.statebase import StateBase
+from enums import HandType
 
 DRAG_THRESHOLD = 0.25
 
@@ -48,12 +49,12 @@ class Gameplay(StateBase):
     deck: DeckHolder
     sort_by_rank: bool
     held_card: Card | None
-    mouse_down_time: float | None
+    mouse_down_timer: float | None
     play_anim_timer: float | None
+    last_hand: HandType
 
     def __init__(self, game):
         super().__init__(game)
-        print(self.ctx)
         manager = self.ctx["manager"]
         self.game_logic = BlindLogic(manager)
         screen_w, screen_h = self.game.screen.get_size()
@@ -71,8 +72,9 @@ class Gameplay(StateBase):
         self.deck.add_card(fake_card)
         self.held_card = None
         self.sort_by_rank = True
-        self.mouse_down_time = None
+        self.mouse_down_timer = None
         self.play_anim_timer = None
+        self.last_hand = HandType.EMPTY
         self.create_buttons()
         self.deal_to_hand()
 
@@ -110,7 +112,9 @@ class Gameplay(StateBase):
             pygame.Color("orange"),
             pygame.Color("white"),
         )
-        suit_rect = discard_rect.scale_by(0.5, 0.5)  # I base suit rect off of discard rect
+        suit_rect = discard_rect.scale_by(
+            0.5, 0.5
+        )  # I base suit rect off of discard rect
         suit_rect.center = (self.hand.rect.centerx + suit_rect.w, suit_rect.centery)
         suit = Button(
             suit_rect,
@@ -168,7 +172,6 @@ class Gameplay(StateBase):
         hand_num_empty = self.game_logic.hand_size - len(self.game_logic.hand)
         self.game_logic.deal_to_hand()
         if hand_num_empty != 0:
-            _, screen_h = self.game.screen.get_size()
             for card_data in self.game_logic.hand[-hand_num_empty:]:
                 card = Card(
                     card_data.get_suit,
@@ -184,7 +187,7 @@ class Gameplay(StateBase):
             and not self.play_anim_timer
             and self.game_logic.num_hands > 0
         ):
-            played_card_datas = self.game_logic.play_hand()
+            played_card_datas, self.last_hand = self.game_logic.play_hand()
             for card in self.hand.cards.sprites():
                 card_data = self.convert_to_card_data(card)
                 if card_data in played_card_datas:
@@ -214,12 +217,14 @@ class Gameplay(StateBase):
                     card.kill()
             if self.game_logic.deck:
                 self.deal_to_hand()
+            self.last_hand = HandType.EMPTY
 
     def select_card(self, card: Card) -> None:
         if card.selected or self.game_logic.num_selected() < 5:
             card_data = self.convert_to_card_data(card)
             card.toggle_select()
             self.game_logic.select_card(card_data)
+            self.last_hand = self.game_logic.get_hand_type()
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -234,17 +239,17 @@ class Gameplay(StateBase):
             # Reversed to scan cards from top layer to bottom
             for card in self.hand.cards.sprites()[::-1]:
                 if not self.play_anim_timer and card.rect.collidepoint(event.pos):
-                    self.mouse_down_time = time.time()
+                    self.mouse_down_timer = time.time()
                     self.held_card = card
                     self.hand.cards.move_to_top(card)
                     break
 
         if event.type == pygame.MOUSEBUTTONUP:
-            if self.mouse_down_time is not None:
-                elapsed_time = time.time() - self.mouse_down_time
+            if self.mouse_down_timer is not None:
+                elapsed_time = time.time() - self.mouse_down_timer
                 if elapsed_time < DRAG_THRESHOLD and self.held_card:
                     self.select_card(self.held_card)
-                self.mouse_down_time = None
+                self.mouse_down_timer = None
             if self.held_card and self.held_card.follow_mouse:
                 self.held_card.toggle_mouse_follow()
             self.held_card = None
@@ -254,9 +259,21 @@ class Gameplay(StateBase):
                 if self.held_card:
                     self.held_card.toggle_mouse_follow()
                     self.held_card = None
-                pause = Pause(self.game)
+                Pause(self.game)
             if event.key == pygame.K_UP:
                 self.exit_state()
+        # if self.game_logic.done:
+        #     self.end_blind()
+
+    # def end_blind(self) -> None:
+    #     won = False
+    #     if self.game_logic.score >= self.game_logic.blind:
+    #         won = True
+    #     if won:
+    #         Transition(self.game)
+    #     else:
+    #         GameOver(self.game)
+
 
     def convert_to_card_data(self, card: Card) -> CardData:
         """
@@ -273,14 +290,14 @@ class Gameplay(StateBase):
     def update(self, dt: float) -> None:
         # checks if card is dragged or clicked
         dragged = False
-        if self.mouse_down_time is not None and self.held_card:
+        if self.mouse_down_timer is not None and self.held_card:
             if not self.held_card.rect.collidepoint(pygame.mouse.get_pos()):
                 dragged = True  # if user drags the card away even before the threshold
-            elapsed = time.time() - self.mouse_down_time
+            elapsed = time.time() - self.mouse_down_timer
             if elapsed >= DRAG_THRESHOLD:
                 dragged = True
             if dragged:
-                self.mouse_down_time = None  # Reset timer
+                self.mouse_down_timer = None  # Reset timer
                 self.held_card.toggle_mouse_follow()
 
         for button in self.buttons.sprites():
@@ -290,9 +307,11 @@ class Gameplay(StateBase):
             card.update(dt)
         self.hand.update(dt)
         self.deck.update(dt, self.game_logic.deck_remaining)
+
         if self.play_anim_timer:
             if time.time() - self.play_anim_timer >= 0.5:
                 self.play_anim_timer = None
+                self.last_hand = HandType.EMPTY
                 self.discard(True)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
@@ -303,10 +322,17 @@ class Gameplay(StateBase):
             self.deck.cards.draw_cards(screen)
         self.buttons.draw(screen)
         self.hand.cards.draw_cards(screen)
+        self.draw_text(f"{self.last_hand.name}", self.font24, (500, 300), pygame.Color("white"))
+        self.draw_text(
+            f"Score at least: {self.game_logic.blind}",
+            self.font24,
+            (100, 300),
+            pygame.Color("crimson"),
+        )
         self.draw_text(
             f"Score: {self.game_logic.score}",
             self.font24,
-            (100, 450),
+            (100, 350),
             pygame.Color("gold"),
         )
         self.draw_text(
