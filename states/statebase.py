@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 import pygame
 
 if TYPE_CHECKING:
@@ -8,9 +8,10 @@ if TYPE_CHECKING:
 
 class StateBase(ABC):
 
-    ctx: dict[str, dict] # keys: manager,
+    ctx: dict[str, Any] # keys: manager,
     def __init__(self, game: "Game"):
         self.game = game
+        self.font10 = pygame.font.Font("assets/balatro.ttf", 10)
         self.font15 = pygame.font.Font("assets/balatro.ttf", 15)
         self.font24 = pygame.font.Font("assets/balatro.ttf", 24)
         self.font200 = pygame.font.Font("assets/balatro.ttf", 200)
@@ -33,11 +34,12 @@ class StateBase(ABC):
         """
         raise NotImplementedError
 
+    @abstractmethod
     def update(self, dt: float) -> None:
         """
         Updates dt in order to run game independent of fps
         """
-        pass
+        raise NotImplementedError
 
     def draw_text(
         self,

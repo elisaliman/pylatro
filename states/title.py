@@ -1,6 +1,7 @@
 import pygame
 
-from states.gameplay import Gameplay
+from states.blind_gameplay import Gameplay
+from states.blind_select import BlindSelect
 from states.statebase import StateBase
 from state_logic.game_manager import GameManagerLogic
 from enums import HandType
@@ -26,7 +27,10 @@ class Title(StateBase):
             self.game.quit()
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.rect.collidepoint(event.pos):
-                Gameplay(self.game)
+                BlindSelect(self.game)
+
+    def update(self, dt) -> None:
+        pass
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")

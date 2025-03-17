@@ -55,7 +55,4 @@ class Button(pygame.sprite.Sprite):
         Update the button state (e.g., hover state) every frame.
         """
         mouse_pos = pygame.mouse.get_pos()
-        was_hovered = self.hovered
         self.hovered = self.rect.collidepoint(mouse_pos)
-        if self.hovered != was_hovered:
-            self.render()

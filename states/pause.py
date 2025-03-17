@@ -1,5 +1,5 @@
 import pygame
-
+import time
 from states.statebase import StateBase
 
 
@@ -29,6 +29,9 @@ class Pause(StateBase):
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.exit_state()
+
+    def update(self, dt) -> None:
+        pass
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         pygame.display.flip()

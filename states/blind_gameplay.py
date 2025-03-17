@@ -11,6 +11,7 @@ from states.gui_elements.card import Card
 from states.gui_elements.card_holder import CardHolder, DeckHolder
 from states.pause import Pause
 from states.statebase import StateBase
+from states.gui_elements.side_panel import SidePanel
 from enums import HandType
 
 DRAG_THRESHOLD = 0.25
@@ -52,19 +53,21 @@ class Gameplay(StateBase):
     mouse_down_timer: float | None
     play_anim_timer: float | None
     last_hand: HandType
+    side_panel: SidePanel
 
-    def __init__(self, game):
+    def __init__(self, game, side_panel: SidePanel):
         super().__init__(game)
+        # Initializes game logic and adds current game logic to side panel
         manager = self.ctx["manager"]
         self.game_logic = BlindLogic(manager)
+        self.side_panel = side_panel
+        self.side_panel.set_blind_logic(self.game_logic)
         screen_w, screen_h = self.game.screen.get_size()
         x = screen_w // 2
-        y = (
-            screen_h - 2 * CARD_HEI
-        )  # places hand two card heights above bottom of screen
+        y = (screen_h - 2 * CARD_HEI)
         self.hand = CardHolder(CARD_WID * 8, (x, y), 8, "center")
-        x += int(CARD_WID * 4.5) + CARD_WID * 3
-        self.deck = DeckHolder(CARD_WID, (x, y), len(self.game_logic.deck), "left")
+        x += int(CARD_WID * 4.5) + CARD_WID * 2
+        self.deck = DeckHolder(CARD_WID, (x, y + 30), len(self.game_logic.deck), "left")
         temp = copy.deepcopy(self.game_logic.deck[-1])
         fake_card = Card(
             temp.get_suit, temp.get_rank, self.deck.rect.center, shown=False
@@ -75,10 +78,10 @@ class Gameplay(StateBase):
         self.mouse_down_timer = None
         self.play_anim_timer = None
         self.last_hand = HandType.EMPTY
-        self.create_buttons()
+        self._create_buttons()
         self.deal_to_hand()
 
-    def create_buttons(self) -> None:
+    def _create_buttons(self) -> None:
         self.buttons = pygame.sprite.Group()
         hand = self.hand.rect
         play_rect = pygame.Rect((hand.x, hand.y + CARD_HEI + 10), (CARD_HEI, CARD_WID))
@@ -233,6 +236,7 @@ class Gameplay(StateBase):
         if event.type == pygame.QUIT:
             self.game.quit()
         if event.type == pygame.MOUSEBUTTONDOWN and pygame.mouse.get_pressed()[0]:
+            self.side_panel.handle_event(event)
             for button in self.buttons.sprites():
                 if isinstance(button, Button) and button.hovered:
                     button.callback()
@@ -262,17 +266,19 @@ class Gameplay(StateBase):
                 Pause(self.game)
             if event.key == pygame.K_UP:
                 self.exit_state()
-        # if self.game_logic.done:
-        #     self.end_blind()
+        if self.game_logic.done:
+            self.end_blind()
 
-    # def end_blind(self) -> None:
-    #     won = False
-    #     if self.game_logic.score >= self.game_logic.blind:
-    #         won = True
-    #     if won:
-    #         Transition(self.game)
-    #     else:
-    #         GameOver(self.game)
+    def end_blind(self) -> None:
+        self.side_panel.remove_blind_logic()
+        won = False
+        if self.game_logic.score >= self.game_logic.blind:
+            won = True
+        #TEMPORARY: SENDS BACK TO BLIND SELECT
+        if won:
+            self.exit_state()
+        else:
+            self.exit_state()
 
 
     def convert_to_card_data(self, card: Card) -> CardData:
@@ -312,7 +318,8 @@ class Gameplay(StateBase):
             if time.time() - self.play_anim_timer >= 0.5:
                 self.play_anim_timer = None
                 self.last_hand = HandType.EMPTY
-                self.discard(True)
+                self.discard(just_played=True)
+        self.side_panel.update(dt)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
@@ -321,30 +328,13 @@ class Gameplay(StateBase):
         if self.game_logic.deck:
             self.deck.cards.draw_cards(screen)
         self.buttons.draw(screen)
+        self.side_panel.draw(screen)
         self.hand.cards.draw_cards(screen)
-        self.draw_text(f"{self.last_hand.name}", self.font24, (500, 300), pygame.Color("white"))
+        self.draw_text(f"{self.last_hand.name}", self.font24, (100, 350), pygame.Color("white"))
         self.draw_text(
             f"Score at least: {self.game_logic.blind}",
             self.font24,
-            (100, 300),
-            pygame.Color("crimson"),
-        )
-        self.draw_text(
-            f"Score: {self.game_logic.score}",
-            self.font24,
-            (100, 350),
-            pygame.Color("gold"),
-        )
-        self.draw_text(
-            f"Hands: {self.game_logic.num_hands}",
-            self.font24,
-            (100, 520),
-            pygame.Color("darkblue"),
-        )
-        self.draw_text(
-            f"Discards: {self.game_logic.num_discards}",
-            self.font24,
-            (100, 550),
+            (100, 200),
             pygame.Color("crimson"),
         )
         if self.held_card:

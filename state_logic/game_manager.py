@@ -52,7 +52,29 @@ class GameManagerLogic():
     deck: list["CardData"] # Stores sorted game deck. (To be shuffled on gameplay)
     levels: dict[HandType, dict[str, int]] # Hand levels and score
     blinds: list[int]
+    round: int
+    ante: int
+    money: int
+
     def __init__(self):
         self.deck = generate_deck()
         self.levels = create_levels()
-        self.blinds = [10000]
+        self.blinds = [600, 450, 300]
+        self.round = 0
+        self.ante = 1
+        self.money = 0
+
+    def next_round(self):
+        """To be called when a blind is selected"""
+        self.round += 1
+        if self.round % 3 == 0:
+            self.ante += 1
+
+    def skip_round(self):
+        """
+        To be called when a blind is skipped
+        Raises a value error if attempted to skip a boss blind
+        """
+        if self.round % 3 == 0:
+            raise ValueError("Cannot skip Boss Blind!!!")
+        self.round += 1
