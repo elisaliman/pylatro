@@ -11,7 +11,7 @@ class SidePanel():
     rect: pygame.Rect
     box: pygame.Rect
     chip_mult: tuple[int, int]
-    buttons: pygame.sprite.Group
+    buttons: pygame.sprite.OrderedUpdates
     _blind_logic: BlindLogic | None
     manager: GameManagerLogic
 
@@ -32,7 +32,7 @@ class SidePanel():
         self.pause_func()
 
     def _create_buttons(self) -> None:
-        self.buttons = pygame.sprite.Group()
+        self.buttons = pygame.sprite.OrderedUpdates()
         pause_rect = pygame.Rect((self.rect.left + 10, 570), (CARD_HEI * 0.7, CARD_WID))
         pause = Button(
             pause_rect,
@@ -93,9 +93,12 @@ class SidePanel():
         if self._blind_logic:
             self.num_hands = self._blind_logic.num_hands
             self.num_discards = self._blind_logic.num_discards
-            self.score = self._blind_logic.score
         else:
             self.num_hands, self.num_discards, self.score = 4, 4, 0
+
+    def update_score(self, score: int, chips: int, mult: int) -> None:
+        self.score = score
+        self.chip_mult = (chips, mult)
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -105,3 +108,4 @@ class SidePanel():
             for button in self.buttons.sprites():
                 if isinstance(button, Button) and button.hovered:
                     button.callback()
+                    return

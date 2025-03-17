@@ -12,9 +12,12 @@ from states.gui_elements.card_holder import CardHolder, DeckHolder
 from states.pause import Pause
 from states.statebase import StateBase
 from states.gui_elements.side_panel import SidePanel
+from states.gui_elements.score_animation import ScoreAnimation
 from enums import HandType
+from utils import get_play_anim_start_x
 
 DRAG_THRESHOLD = 0.25
+BUTTON_COOLDOWN: float = 0.5
 
 # use for testing cards
 # def generate_deck(deck_data: list[CardData]) -> list[Card]:
@@ -38,22 +41,23 @@ def generate_deck(deck_data: list[CardData]) -> list[Card]:
     for card_data in deck_data:
         suit = card_data.get_suit
         rank = card_data.get_rank
-        card = Card(suit, rank, (1000, 400))
+        card = Card(suit, rank, card_data.chips, (1000, 400))
         deck.append(card)
     return deck
 
 
 class Gameplay(StateBase):
     game_logic: BlindLogic
-    buttons: pygame.sprite.Group
+    buttons: pygame.sprite.OrderedUpdates
     hand: CardHolder
     deck: DeckHolder
     sort_by_rank: bool
     held_card: Card | None
     mouse_down_timer: float | None
-    play_anim_timer: float | None
+    scoring_animation: ScoreAnimation | None
     last_hand: HandType
     side_panel: SidePanel
+    last_button_click_time: float # Safety measure to prevent duplicate clicks
 
     def __init__(self, game, side_panel: SidePanel):
         super().__init__(game)
@@ -70,19 +74,20 @@ class Gameplay(StateBase):
         self.deck = DeckHolder(CARD_WID, (x, y + 30), len(self.game_logic.deck), "left")
         temp = copy.deepcopy(self.game_logic.deck[-1])
         fake_card = Card(
-            temp.get_suit, temp.get_rank, self.deck.rect.center, shown=False
+            temp.get_suit, temp.get_rank, 0, self.deck.rect.center, shown=False
         )
         self.deck.add_card(fake_card)
         self.held_card = None
         self.sort_by_rank = True
         self.mouse_down_timer = None
-        self.play_anim_timer = None
+        self.scoring_animation = None
         self.last_hand = HandType.EMPTY
         self._create_buttons()
         self.deal_to_hand()
 
     def _create_buttons(self) -> None:
-        self.buttons = pygame.sprite.Group()
+        self.last_button_click_time = time.time()
+        self.buttons = pygame.sprite.OrderedUpdates()
         hand = self.hand.rect
         play_rect = pygame.Rect((hand.x, hand.y + CARD_HEI + 10), (CARD_HEI, CARD_WID))
         play = Button(
@@ -166,7 +171,7 @@ class Gameplay(StateBase):
             if card.selected:
                 y -= 35  # Offset in card class is 35. May cause issues if I change value in one place
             card.set_target_pos((x, y))
-        self.hand.cards.add(cards)
+            self.hand.cards.add(card)
 
     def deal_to_hand(self) -> None:
         """
@@ -179,23 +184,33 @@ class Gameplay(StateBase):
                 card = Card(
                     card_data.get_suit,
                     card_data.get_rank,
+                    card_data.chips,
                     self.deck.rect.center,
                 )  # places center of deck 1.5 card_h above bottom of screen
                 self.hand.add_card(card)
             self.sort_cards()
 
     def play_hand(self) -> None:
+        current_time = time.time()
         if (
             self.game_logic.num_selected() > 0
-            and not self.play_anim_timer
-            and self.game_logic.num_hands > 0
+            and not self.scoring_animation
+            and not self.game_logic.done
+            and current_time - self.last_button_click_time > BUTTON_COOLDOWN
         ):
-            played_card_datas, self.last_hand = self.game_logic.play_hand()
-            for card in self.hand.cards.sprites():
+            self.last_button_click_time = current_time
+            played_card_datas, self.last_hand, score = self.game_logic.play_hand()
+            _, screen_h = self.game.screen.get_size()
+            start_x = get_play_anim_start_x(self.game.screen, len(played_card_datas))
+            played: list[Card] = []
+            for card in self.hand.cards:
+                assert isinstance(card, Card)
                 card_data = self.convert_to_card_data(card)
-                if card_data in played_card_datas:
-                    card.set_target_pos((card.rect.centerx, card.rect.centery - 100))
-            self.play_anim_timer = time.time()
+                if card_data in played_card_datas and card.selected:
+                    card.set_target_pos((start_x, screen_h // 2))
+                    start_x += card.rect.w + 30 # SPACING
+                    played.append(card)
+            self.scoring_animation = ScoreAnimation(self.side_panel, self.side_panel.score, score, played)
 
     def discard(self, just_played: bool = False) -> None:
         """
@@ -209,7 +224,7 @@ class Gameplay(StateBase):
         if (
             self.game_logic.num_selected() > 0
             and self.game_logic.num_discards > 0
-            and not self.play_anim_timer
+            and not self.scoring_animation
         ):
             self.game_logic.discard(just_played)
             for card in self.hand.cards.sprites():
@@ -240,21 +255,21 @@ class Gameplay(StateBase):
             for button in self.buttons.sprites():
                 if isinstance(button, Button) and button.hovered:
                     button.callback()
+                    return
             # Reversed to scan cards from top layer to bottom
             for card in self.hand.cards.sprites()[::-1]:
-                if not self.play_anim_timer and card.rect.collidepoint(event.pos):
+                if not self.scoring_animation and card.rect.collidepoint(event.pos):
                     self.mouse_down_timer = time.time()
                     self.held_card = card
-                    self.hand.cards.move_to_top(card)
-                    break
+                    return
 
         if event.type == pygame.MOUSEBUTTONUP:
             if self.mouse_down_timer is not None:
                 elapsed_time = time.time() - self.mouse_down_timer
                 if elapsed_time < DRAG_THRESHOLD and self.held_card:
                     self.select_card(self.held_card)
-                self.mouse_down_timer = None
             if self.held_card and self.held_card.follow_mouse:
+                self.hand.cards.move_to_top(self.held_card)
                 self.held_card.toggle_mouse_follow()
             self.held_card = None
 
@@ -266,7 +281,7 @@ class Gameplay(StateBase):
                 Pause(self.game)
             if event.key == pygame.K_UP:
                 self.exit_state()
-        if self.game_logic.done:
+        if self.game_logic.done and not self.scoring_animation:
             self.end_blind()
 
     def end_blind(self) -> None:
@@ -313,12 +328,16 @@ class Gameplay(StateBase):
             card.update(dt)
         self.hand.update(dt)
         self.deck.update(dt, self.game_logic.deck_remaining)
-
-        if self.play_anim_timer:
-            if time.time() - self.play_anim_timer >= 0.5:
-                self.play_anim_timer = None
+        if self.scoring_animation is not None:
+            # print(f"GAME UPDATING: {dt}")
+            # print(f"{self.scoring_animation=}")
+            self.scoring_animation.update(dt)
+            if self.scoring_animation.is_done():
+                print(f"{self.scoring_animation=}")
+                self.scoring_animation = None
                 self.last_hand = HandType.EMPTY
                 self.discard(just_played=True)
+
         self.side_panel.update(dt)
 
     def draw(self, screen: pygame.surface.Surface) -> None:
@@ -328,6 +347,8 @@ class Gameplay(StateBase):
         if self.game_logic.deck:
             self.deck.cards.draw_cards(screen)
         self.buttons.draw(screen)
+        if self.scoring_animation is not None:
+            self.scoring_animation.draw(screen)
         self.side_panel.draw(screen)
         self.hand.cards.draw_cards(screen)
         self.draw_text(f"{self.last_hand.name}", self.font24, (100, 350), pygame.Color("white"))
@@ -339,4 +360,3 @@ class Gameplay(StateBase):
         )
         if self.held_card:
             self.held_card.draw(screen)
-        pygame.display.flip()

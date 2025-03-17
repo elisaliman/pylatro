@@ -4,6 +4,8 @@ from enums import Rank, Suit
 class CardData:
     suit: Suit
     rank: Rank
+    chips: int
+    mult: int
     selected: bool
 
     def __init__(self, suit: Suit, rank: Rank):

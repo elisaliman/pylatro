@@ -10,6 +10,8 @@ from states.title import Title
 if TYPE_CHECKING:
     from states.statebase import StateBase  # Import only for type checking
 
+MAX_DT: float = 0.15
+BUTTON_COOLDOWN: float = 0.5
 
 class Game:
     deck: list["Card"]
@@ -21,6 +23,7 @@ class Game:
     dx: float
     prev_time: float
     fps: int
+    last_button_click_time: float
 
     def __init__(self, screen: pygame.surface.Surface):
         self.screen = screen
@@ -29,9 +32,10 @@ class Game:
         self.state_stack = []
         self.state = Title(self)
         self.prev_time = 0.0
+        self.last_button_click_time = time.time()
         self.fps = 120
 
-    def run(self):
+    def run(self) -> None:
         """
         Main game loop
         """
@@ -41,7 +45,7 @@ class Game:
             self.draw()
             pygame.display.flip()
 
-    def event_loop(self):
+    def event_loop(self) -> None:
         """
         Runs current state's event handler
         """
@@ -56,6 +60,7 @@ class Game:
         self.clock.tick(self.fps)
         now = time.time()
         dt = now - self.prev_time
+        dt = min(dt, MAX_DT)
         self.prev_time = now
         self.state.update(dt)
 

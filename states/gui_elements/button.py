@@ -25,7 +25,7 @@ class Button(pygame.sprite.Sprite):
         super().__init__()
         self.rect = pygame.Rect(rect)
         self.text = text
-        self.callback = callback
+        self.callback_f = callback
         self.color = bg_color
         self.text_color = text_color
         self.font = font or pygame.font.SysFont("Arial", 20)
@@ -56,3 +56,7 @@ class Button(pygame.sprite.Sprite):
         """
         mouse_pos = pygame.mouse.get_pos()
         self.hovered = self.rect.collidepoint(mouse_pos)
+
+    def callback(self) -> None:
+        self.callback_f()
+        return

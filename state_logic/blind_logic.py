@@ -130,14 +130,14 @@ class BlindLogic:
         _, hand = pk.get_hand_type(selected)
         return hand
 
-    def play_hand(self) -> tuple[list[CardData], HandType]:
+    def play_hand(self) -> tuple[list[CardData], HandType, tuple[int, int, int]]:
         """
         Plays selected cards for points.
         Raises ValueError if less than one card is selected
         Raises ValueError if not enough hands left to use
 
-        Retuns (list[CardData]): list of CardData in order for GUI to know which
-            cards were actually counted for points
+        Retuns (list[CardData]): list of CardData in order, handtype, and a
+            a tuple containing (score, base chips, base mult)
         """
         if self.num_selected() == 0:
             raise ValueError(f"Must have at least one card selected!")
@@ -145,6 +145,8 @@ class BlindLogic:
             raise ValueError(f"Cannot play! No hands left! {self._num_hands=}")
         self.played = [card for card in self.hand if card.selected]
         valid_cards, hand_type = pk.get_hand_type(self.played)
+        # Sorts valid cards back into the order they were played
+        valid_cards = [card for card in self.played if card in valid_cards]
         base_chips = self.manager.levels[hand_type]["chips"]
         base_mult = self.manager.levels[hand_type]["mult"]
         chips = base_chips
@@ -162,7 +164,7 @@ class BlindLogic:
             self.end_game(won=True)
         if self._num_hands == 0:
             self.end_game(won=False)
-        return (valid_cards, hand_type)
+        return (valid_cards, hand_type, (self.score, base_chips, base_mult))
 
     def discard(self, just_played: bool = False) -> None:
         """

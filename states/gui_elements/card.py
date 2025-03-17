@@ -19,18 +19,22 @@ class Card(pygame.sprite.Sprite):
     target_pos: tuple[int, int]
     follow_mouse: bool
     selected: bool
+    chips: int
+    mult: int
 
     def __init__(
         self,
         suit: Suit,
         rank: Rank,
+        chips: int,
         pos: tuple[int, int],
         shown: bool = True,
-        *groups: pygame.sprite.Group,
+        *groups: pygame.sprite.OrderedUpdates,
     ):
         super().__init__(*groups)
         self.suit = suit
         self.rank = rank
+        self.chips = chips
         self.image = pygame.Surface((CARD_WID, CARD_HEI), pygame.SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
@@ -161,7 +165,7 @@ class Card(pygame.sprite.Sprite):
         return hash((self.suit, self.rank))
 
 
-class CardGroup(pygame.sprite.Group):
+class CardGroup(pygame.sprite.OrderedUpdates):
     """
     pygame Group class that allows extra functionality
     """
