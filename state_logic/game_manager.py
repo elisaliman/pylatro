@@ -36,6 +36,7 @@ def create_levels() -> dict[HandType, dict[str, int]]:
             HandType.TWOPAIR: {"chips": 20, "mult": 2, "lvl": 1}, # "Two Pair"
             HandType.PAIR: {"chips": 10, "mult": 2, "lvl": 1}, # "Pair"
             HandType.HIGH: {"chips": 5, "mult": 1, "lvl": 1}, # "High Card"
+            HandType.EMPTY: {"chips": 0, "mult": 0, "lvl": 0}, # "Empty Hand"
 }
         return levels
 

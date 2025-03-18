@@ -55,7 +55,6 @@ class Gameplay(StateBase):
     held_card: Card | None
     mouse_down_timer: float | None
     scoring_animation: ScoreAnimation | None
-    last_hand: HandType
     side_panel: SidePanel
     last_button_click_time: float # Safety measure to prevent duplicate clicks
 
@@ -81,7 +80,6 @@ class Gameplay(StateBase):
         self.sort_by_rank = True
         self.mouse_down_timer = None
         self.scoring_animation = None
-        self.last_hand = HandType.EMPTY
         self._create_buttons()
         self.deal_to_hand()
 
@@ -199,7 +197,8 @@ class Gameplay(StateBase):
             and current_time - self.last_button_click_time > BUTTON_COOLDOWN
         ):
             self.last_button_click_time = current_time
-            played_card_datas, self.last_hand, score = self.game_logic.play_hand()
+            played_card_datas, hand_type, score = self.game_logic.play_hand()
+            self.side_panel.update_hand_type(hand_type)
             _, screen_h = self.game.screen.get_size()
             start_x = get_play_anim_start_x(self.game.screen, len(played_card_datas))
             played: list[Card] = []
@@ -235,14 +234,14 @@ class Gameplay(StateBase):
                     card.kill()
             if self.game_logic.deck:
                 self.deal_to_hand()
-            self.last_hand = HandType.EMPTY
+            self.side_panel.update_hand_type(HandType.EMPTY)
 
     def select_card(self, card: Card) -> None:
         if card.selected or self.game_logic.num_selected() < 5:
             card_data = self.convert_to_card_data(card)
             card.toggle_select()
             self.game_logic.select_card(card_data)
-            self.last_hand = self.game_logic.get_hand_type()
+            self.side_panel.update_hand_type(self.game_logic.get_hand_type())
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
@@ -335,7 +334,7 @@ class Gameplay(StateBase):
             if self.scoring_animation.is_done():
                 print(f"{self.scoring_animation=}")
                 self.scoring_animation = None
-                self.last_hand = HandType.EMPTY
+                self.side_panel.update_hand_type(HandType.EMPTY)
                 self.discard(just_played=True)
 
         self.side_panel.update(dt)
@@ -351,7 +350,6 @@ class Gameplay(StateBase):
             self.scoring_animation.draw(screen)
         self.side_panel.draw(screen)
         self.hand.cards.draw_cards(screen)
-        self.draw_text(f"{self.last_hand.name}", self.font24, (100, 350), pygame.Color("white"))
         self.draw_text(
             f"Score at least: {self.game_logic.blind}",
             self.font24,

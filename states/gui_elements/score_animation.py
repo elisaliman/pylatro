@@ -24,7 +24,7 @@ class ScoreAnimation:
     ):
         """Initialize the animation with target score and card point breakdown."""
         self.side_panel = side_panel
-        self.final_score, self.base_chips, self.base_mult = scores  # Target score to reach
+        self.final_score, self.chips, self.mult = scores  # Target score to reach
         self.card_points = [
             card.chips for card in cards
         ]  # List of chips each card earned
@@ -50,16 +50,22 @@ class ScoreAnimation:
             return
         if time.time() - self.start_delay_timer >= ANIMATION_START_DELAY:
             self.start_delay_timer = ANIMATION_START_DELAY
-            if self.displayed_score < self.final_score:
-                self.displayed_score += 1
+
+            if self.current_card_index == len(self.card_points) and self.displayed_score < self.final_score:
+                difference = self.final_score - self.displayed_score
+                increment = max(1, difference // 20)
+                self.displayed_score = min(self.final_score, self.displayed_score + increment)
 
             # Reveal next card’s score every 0.5s
             if self.current_card_index < len(self.card_points):
                 if time.time() - self.card_display_timer > 0.5:
                     self.current_card_index += 1
+                    self.chips += self.card_points[self.current_card_index - 1]
                     self.card_display_timer = time.time()
 
             # Stop animation when displayed score reaches final score
+            # print(self.current_card_index, len(self.card_points))
+            print(self.displayed_score, self.final_score)
             if (
                 self.displayed_score >= self.final_score
                 and self.current_card_index == len(self.card_points)
@@ -85,7 +91,7 @@ class ScoreAnimation:
             x_offset += CARD_WID + 30  # Space out the numbers
 
         # Draw the dynamically updating score
-        self.side_panel.update_score(self.displayed_score, 0, 0)
+        self.side_panel.update_score(self.displayed_score, self.chips, self.mult)
 
     def is_done(self):
         """Check if the animation has finished."""
