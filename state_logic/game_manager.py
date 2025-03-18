@@ -62,13 +62,13 @@ class GameManagerLogic():
         self.levels = create_levels()
         self.blinds = [600, 450, 300]
         self.round = 0
-        self.ante = 1
+        self.ante = 0
         self.money = 0
 
     def next_round(self):
         """To be called when a blind is selected"""
         self.round += 1
-        if self.round % 3 == 0:
+        if self.round % 3 == 1:
             self.ante += 1
 
     def skip_round(self):

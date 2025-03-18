@@ -60,6 +60,7 @@ class BlindSelect(StateBase):
 
     def enter_blind(self) -> None:
         """Enters next blind"""
+        self.manager.next_round()
         Gameplay(self.game, self.side_panel)
 
     def update(self, dt: float) -> None:
