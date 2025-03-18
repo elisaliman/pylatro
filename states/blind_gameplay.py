@@ -19,22 +19,6 @@ from utils import get_play_anim_start_x
 DRAG_THRESHOLD = 0.25
 BUTTON_COOLDOWN: float = 0.5
 
-# use for testing cards
-# def generate_deck(deck_data: list[CardData]) -> list[Card]:
-#     deck = []
-#     x = 100
-#     y = 100
-#     for card_data in deck_data:
-#         suit = card_data.get_suit
-#         rank = card_data.get_rank
-#         card = Card(suit, rank, (x, y))
-#         deck.append(card)
-#         y += 30
-#         if y % 490 == 0:
-#             x += 200
-#             y = 100
-#     return deck
-
 
 def generate_deck(deck_data: list[CardData]) -> list[Card]:
     deck = []
@@ -146,9 +130,11 @@ class Gameplay(StateBase):
         self.sort_by_rank = False
         self.sort_cards()
 
-    def sort_cards(self) -> None:
+    def sort_cards(self) -> list[Card]:
         """
         Sorts the cards in self.hand by rank or suit and updates their target positions.
+
+        Returns a separate list of sorted cards
         """
         # Ensure game_logic is consistent with the sort mode
         self.game_logic.sort_cards(self.sort_by_rank)
@@ -163,6 +149,7 @@ class Gameplay(StateBase):
                 key=lambda card: (card.suit.value, -card.rank.value),
             )
         self.hand.cards.empty()
+        result = []
         for idx, card in enumerate(cards):
             x = self.hand.rect.x + (idx * CARD_WID) + CARD_WID // 2
             y = self.hand.rect.y + (CARD_HEI // 2)
@@ -170,6 +157,8 @@ class Gameplay(StateBase):
                 y -= 35  # Offset in card class is 35. May cause issues if I change value in one place
             card.set_target_pos((x, y))
             self.hand.cards.add(card)
+            result.append(card)
+        return result
 
     def deal_to_hand(self) -> None:
         """
@@ -268,6 +257,9 @@ class Gameplay(StateBase):
                 if elapsed_time < DRAG_THRESHOLD and self.held_card:
                     self.select_card(self.held_card)
             if self.held_card and self.held_card.follow_mouse:
+                dropped_x = event.pos[0]
+                hand = self.sort_cards()
+                self.sort_by_custom(dropped_x, hand)
                 self.hand.cards.move_to_top(self.held_card)
                 self.held_card.toggle_mouse_follow()
             self.held_card = None
@@ -280,8 +272,15 @@ class Gameplay(StateBase):
                 Pause(self.game)
             if event.key == pygame.K_UP:
                 self.exit_state()
+
+
         if self.game_logic.done and not self.scoring_animation:
             self.end_blind()
+
+    def sort_by_custom(self, pos_x: int, hand: list[Card]) -> None:
+        for idx, card in enumerate(hand[1:-1]):
+            if hand[idx].rect.centerx < pos_x < card.rect.centerx:
+                print(f"should be in between {hand[idx]} and {card}")
 
     def end_blind(self) -> None:
         self.side_panel.remove_blind_logic()
