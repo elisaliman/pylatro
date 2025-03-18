@@ -334,6 +334,7 @@ class Gameplay(StateBase):
             if self.scoring_animation.is_done():
                 print(f"{self.scoring_animation=}")
                 self.scoring_animation = None
+                self.side_panel.set_played_score()
                 self.side_panel.update_hand_type(HandType.EMPTY)
                 self.discard(just_played=True)
 

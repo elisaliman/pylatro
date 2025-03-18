@@ -14,11 +14,13 @@ class SidePanel():
     chips: pygame.surface.Surface | None
     mult: pygame.surface.Surface | None
     hand_type: HandType
+    played_score: pygame.surface.Surface | None
     buttons: pygame.sprite.OrderedUpdates
     _blind_logic: BlindLogic | None
     manager: GameManagerLogic
 
     def __init__(self, pause_func: Callable, screen: pygame.surface.Surface, manager: GameManagerLogic):
+        self.screen = screen
         self.manager = manager
         self.font10 = pygame.font.Font("assets/balatro.ttf", 10)
         self.font15 = pygame.font.Font("assets/balatro.ttf", 15)
@@ -33,6 +35,7 @@ class SidePanel():
         self.X = self.font24.render("X", True, pygame.Color("crimson"))
         self.O = self.font24.render("0", True, pygame.Color("white"))
         self._blind_logic = None
+        self.played_score = None
         self._create_buttons()
 
     def pause(self) -> None:
@@ -82,7 +85,7 @@ class SidePanel():
     def draw(self, screen: pygame.surface.Surface) -> None:
         pygame.draw.rect(screen, pygame.Color("grey20"), self.rect)
         self.draw_box(screen, (self.rect.centerx, 430), "", "white", scale=(3.3, 1), has_small_box=False)
-        self.draw_box(screen, (self.rect.centerx, 380), f"{self.hand_type.name}", "white", scale=(3.3, 1.5), has_small_box=False)
+        self.draw_box(screen, (self.rect.centerx, 385), f"{self.hand_type.name}", "white", scale=(3.3, 1.5), has_small_box=False)
         pygame.draw.rect(screen, pygame.Color("dodgerblue2"), pygame.Rect((self.rect.left + 10, 405), (self.rect.width // 2.5, 40)), border_radius=5)
         pygame.draw.rect(screen, pygame.Color("crimson"), pygame.Rect((self.rect.right - self.rect.width // 2.5 - 10, 405), (self.rect.width // 2.5, 40)), border_radius=5)
         screen.blit(self.X, (184, 410))
@@ -92,6 +95,10 @@ class SidePanel():
         else:
             screen.blit(self.O, (150, 410))
             screen.blit(self.O, (220, 410))
+        if self.played_score:
+            print("drawing")
+            self.draw_box(screen, (self.rect.centerx, 380), "", "white", scale=(3.3, 1), has_small_box=False)
+            screen.blit(self.played_score, (self.rect.centerx - self.played_score.get_size()[0] // 2, 365))
         self.draw_box(screen, (self.rect.right - 100, 500), str(self.num_hands), "dodgerblue2", text="Hands")
         self.draw_box(screen, (self.rect.right - 35, 500), str(self.num_discards), "crimson", text="Discards")
         self.draw_box(screen, (self.rect.centerx, 300), f"{self.score}", "white", text="Round Score", scale=(3.1, 1))
@@ -101,9 +108,34 @@ class SidePanel():
         self.buttons.draw(screen)
 
     def set_blind_logic(self, blind_logic: BlindLogic) -> None:
+        """
+        Sets the blind logic attribute in order to render the stats and info
+        of the current blind
+
+        Args:
+            blind_logic (BlindLogic): blind logic for the pannel
+        """
         self._blind_logic = blind_logic
 
+    def set_played_score(self, played_score: int | None = None) -> None:
+        """
+        Sets total played score be displayed after tallying total played score
+
+        Args:
+            played_score (int, optional) Total score from hand to be displayed
+                after tallying. Defaults to None, meaning no score will be shown
+        """
+        if played_score is not None:
+            self.played_score = self.font24.render(str(played_score), True, pygame.Color("white"))
+        else:
+            self.played_score = None
+        print(f"{self.played_score=}")
+
     def remove_blind_logic(self) -> None:
+        """
+        Removes the blind logic object from the side pannel. To be used when
+        blind is over
+        """
         self._blind_logic = None
         self.num_hands = 4
         self.num_discards = 4
@@ -119,15 +151,32 @@ class SidePanel():
             self.num_hands, self.num_discards, self.score = 4, 4, 0
 
     def update_score(self, score: int, chips: int, mult: int) -> None:
+        """
+        Updates the displayed score and mult during the played cards
+        scoring animation
+
+        Args:
+            score (int): Score to be shown
+            chips (int): Chip count to be shown
+            mult (int) Mult count to be shown
+        """
         self.score = score
         self.chips = self.font24.render(str(chips), True, pygame.Color("white"))
         self.mult = self.font24.render(str(mult), True, pygame.Color("white"))
 
     def update_hand_type(self, hand_type: HandType) -> None:
+        """
+        Updates the dispayed hand type and base chips/mult. To be used to
+        display the currently *selected* hand + respecitve base chips/mult
+
+        Args:
+            hand_type (HandType): The hand type to be displayed
+        """
         self.hand_type = hand_type
         chips, mult = self.manager.levels[hand_type]["chips"], self.manager.levels[hand_type]["mult"]
         self.chips = self.font24.render(str(chips), True, pygame.Color("white"))
         self.mult = self.font24.render(str(mult), True, pygame.Color("white"))
+
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """

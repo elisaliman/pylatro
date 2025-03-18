@@ -52,6 +52,7 @@ class ScoreAnimation:
             self.start_delay_timer = ANIMATION_START_DELAY
 
             if self.current_card_index == len(self.card_points) and self.displayed_score < self.final_score:
+                self.side_panel.set_played_score(self.final_score)
                 difference = self.final_score - self.displayed_score
                 increment = max(1, difference // 20)
                 self.displayed_score = min(self.final_score, self.displayed_score + increment)
@@ -64,8 +65,6 @@ class ScoreAnimation:
                     self.card_display_timer = time.time()
 
             # Stop animation when displayed score reaches final score
-            # print(self.current_card_index, len(self.card_points))
-            print(self.displayed_score, self.final_score)
             if (
                 self.displayed_score >= self.final_score
                 and self.current_card_index == len(self.card_points)
