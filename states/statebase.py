@@ -8,7 +8,8 @@ if TYPE_CHECKING:
 
 class StateBase(ABC):
 
-    ctx: dict[str, Any] # keys: manager,
+    ctx: dict[str, Any]  # keys: manager,
+
     def __init__(self, game: "Game"):
         self.game = game
         self.font10 = pygame.font.Font("assets/balatro.ttf", 10)

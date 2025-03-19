@@ -34,13 +34,14 @@ class Gameplay(StateBase):
     game_logic: BlindLogic
     buttons: pygame.sprite.OrderedUpdates
     hand: CardHolder
+    hand_ordered: list[Card]
     deck: DeckHolder
     sort_by_rank: bool
     held_card: Card | None
     mouse_down_timer: float | None
     scoring_animation: ScoreAnimation | None
     side_panel: SidePanel
-    last_button_click_time: float # Safety measure to prevent duplicate clicks
+    last_button_click_time: float  # Safety measure to prevent duplicate clicks
 
     def __init__(self, game, side_panel: SidePanel):
         super().__init__(game)
@@ -51,8 +52,9 @@ class Gameplay(StateBase):
         self.side_panel.set_blind_logic(self.game_logic)
         screen_w, screen_h = self.game.screen.get_size()
         x = screen_w // 2
-        y = (screen_h - 2 * CARD_HEI)
+        y = screen_h - 2 * CARD_HEI
         self.hand = CardHolder(CARD_WID * 8, (x, y), 8, "center")
+        self.hand_ordered = []
         x += int(CARD_WID * 4.5) + CARD_WID * 2
         self.deck = DeckHolder(CARD_WID, (x, y + 30), len(self.game_logic.deck), "left")
         temp = copy.deepcopy(self.game_logic.deck[-1])
@@ -130,11 +132,10 @@ class Gameplay(StateBase):
         self.sort_by_rank = False
         self.sort_cards()
 
-    def sort_cards(self) -> list[Card]:
+    def sort_cards(self) -> None:
         """
         Sorts the cards in self.hand by rank or suit and updates their target positions.
-
-        Returns a separate list of sorted cards
+        Also stores the ordered cards
         """
         # Ensure game_logic is consistent with the sort mode
         self.game_logic.sort_cards(self.sort_by_rank)
@@ -148,17 +149,61 @@ class Gameplay(StateBase):
                 self.hand.cards.sprites(),
                 key=lambda card: (card.suit.value, -card.rank.value),
             )
+        self._sort_adjust_pos(cards)
+        self.hand_ordered = cards
+
+    def sort_by_custom(self, pos_x: int) -> None:
+        """
+        Does a custom sorting where a held card is placed wherever it is dropped
+        in the hand
+
+        Args:
+            pos_x (int): x coord of the mouse when card is dropped
+        """
+        assert self.held_card
+        hand = self.hand_ordered
+        og_idx: int = hand.index(self.held_card)
+        new_idx: int | None = None
+        if pos_x < hand[0].rect.centerx and self.held_card is not hand[0]:
+            new_idx = 0
+        elif pos_x > hand[-1].rect.centerx and self.held_card is not hand[-1]:
+            new_idx = len(hand) - 1
+        else:
+            for idx, card in enumerate(hand[1:]):
+                if (
+                    hand[idx] is not self.held_card
+                    and card is not self.held_card
+                    and hand[idx].rect.centerx < pos_x < card.rect.centerx
+                ):
+                    new_idx = idx + 1
+                    if og_idx < new_idx:
+                        new_idx -= 1
+                    break
+        if new_idx is None:
+            return
+        self.game_logic.sort_cards_custom(og_idx, new_idx)
+
+        popped = hand.pop(og_idx)
+        hand.insert(new_idx, popped)
+        self.hand_ordered = hand
+        self._sort_adjust_pos(hand)
+
+    def _sort_adjust_pos(self, hand: list[Card]) -> None:
+        """
+        Helper method for sort and custom sort that adjusts the target
+        postitions of the cards in hand
+
+        Args:
+            hand (list[Card]): list of cards for hand to be ordered in
+        """
         self.hand.cards.empty()
-        result = []
-        for idx, card in enumerate(cards):
+        for idx, card in enumerate(hand):
             x = self.hand.rect.x + (idx * CARD_WID) + CARD_WID // 2
             y = self.hand.rect.y + (CARD_HEI // 2)
             if card.selected:
                 y -= 35  # Offset in card class is 35. May cause issues if I change value in one place
             card.set_target_pos((x, y))
             self.hand.cards.add(card)
-            result.append(card)
-        return result
 
     def deal_to_hand(self) -> None:
         """
@@ -191,14 +236,16 @@ class Gameplay(StateBase):
             _, screen_h = self.game.screen.get_size()
             start_x = get_play_anim_start_x(self.game.screen, len(played_card_datas))
             played: list[Card] = []
-            for card in self.hand.cards:
+            for card in self.hand_ordered:
                 assert isinstance(card, Card)
                 card_data = self.convert_to_card_data(card)
                 if card_data in played_card_datas and card.selected:
                     card.set_target_pos((start_x, screen_h // 2))
-                    start_x += card.rect.w + 30 # SPACING
+                    start_x += card.rect.w + 30  # SPACING
                     played.append(card)
-            self.scoring_animation = ScoreAnimation(self.side_panel, self.side_panel.score, score, played)
+            self.scoring_animation = ScoreAnimation(
+                self.side_panel, self.side_panel.score, score, played
+            )
 
     def discard(self, just_played: bool = False) -> None:
         """
@@ -258,8 +305,7 @@ class Gameplay(StateBase):
                     self.select_card(self.held_card)
             if self.held_card and self.held_card.follow_mouse:
                 dropped_x = event.pos[0]
-                hand = self.sort_cards()
-                self.sort_by_custom(dropped_x, hand)
+                self.sort_by_custom(dropped_x)
                 self.hand.cards.move_to_top(self.held_card)
                 self.held_card.toggle_mouse_follow()
             self.held_card = None
@@ -273,26 +319,19 @@ class Gameplay(StateBase):
             if event.key == pygame.K_UP:
                 self.exit_state()
 
-
         if self.game_logic.done and not self.scoring_animation:
             self.end_blind()
-
-    def sort_by_custom(self, pos_x: int, hand: list[Card]) -> None:
-        for idx, card in enumerate(hand[1:-1]):
-            if hand[idx].rect.centerx < pos_x < card.rect.centerx:
-                print(f"should be in between {hand[idx]} and {card}")
 
     def end_blind(self) -> None:
         self.side_panel.remove_blind_logic()
         won = False
         if self.game_logic.score >= self.game_logic.blind:
             won = True
-        #TEMPORARY: SENDS BACK TO BLIND SELECT
+        # TEMPORARY: SENDS BACK TO BLIND SELECT
         if won:
             self.exit_state()
         else:
             self.exit_state()
-
 
     def convert_to_card_data(self, card: Card) -> CardData:
         """
@@ -327,11 +366,8 @@ class Gameplay(StateBase):
         self.hand.update(dt)
         self.deck.update(dt, self.game_logic.deck_remaining)
         if self.scoring_animation is not None:
-            # print(f"GAME UPDATING: {dt}")
-            # print(f"{self.scoring_animation=}")
             self.scoring_animation.update(dt)
             if self.scoring_animation.is_done():
-                print(f"{self.scoring_animation=}")
                 self.scoring_animation = None
                 self.side_panel.set_played_score()
                 self.side_panel.update_hand_type(HandType.EMPTY)

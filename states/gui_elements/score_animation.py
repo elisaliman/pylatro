@@ -20,7 +20,11 @@ class ScoreAnimation:
     playing: bool
 
     def __init__(
-        self, side_panel: SidePanel, current: int, scores: tuple[int, int, int], cards: list[Card]
+        self,
+        side_panel: SidePanel,
+        current: int,
+        scores: tuple[int, int, int],
+        cards: list[Card],
     ):
         """Initialize the animation with target score and card point breakdown."""
         self.side_panel = side_panel
@@ -37,7 +41,7 @@ class ScoreAnimation:
                 f"+{self.card_points[i]}", True, pygame.Color("dodgerblue2")
             )
             self.card_points_images.append(text_surface)
-        self.initial_score = current # Score before any calculations
+        self.initial_score = current  # Score before any calculations
         self.displayed_score = current  # Score shown on screen
         self.current_card_index = 0  # Track which card's points are being revealed
         self.start_delay_timer = time.time()  # Timer for pre animation delay
@@ -52,11 +56,16 @@ class ScoreAnimation:
         if time.time() - self.start_delay_timer >= ANIMATION_START_DELAY:
             self.start_delay_timer = ANIMATION_START_DELAY
 
-            if self.current_card_index == len(self.card_points) and self.displayed_score < self.final_score:
+            if (
+                self.current_card_index == len(self.card_points)
+                and self.displayed_score < self.final_score
+            ):
                 self.side_panel.set_played_score(self.final_score - self.initial_score)
                 difference = self.final_score - self.displayed_score
                 increment = max(1, difference // 20)
-                self.displayed_score = min(self.final_score, self.displayed_score + increment)
+                self.displayed_score = min(
+                    self.final_score, self.displayed_score + increment
+                )
 
             # Reveal next card’s score every 0.5s
             if self.current_card_index < len(self.card_points):

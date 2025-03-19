@@ -84,6 +84,10 @@ class BlindLogic:
                 self.hand, key=lambda card: (card.get_suit.value, -card.get_rank.value)
             )
 
+    def sort_cards_custom(self, og_idx: int, new_idx: int) -> None:
+        popped = self.hand.pop(og_idx)
+        self.hand.insert(new_idx, popped)
+
     def num_selected(self) -> int:
         """
         Returns number of selected cards
@@ -186,7 +190,7 @@ class BlindLogic:
             self._num_discards -= 1
         # Should almost always call self.deal_to_hand() afterwards
 
-    def end_game(self, won: bool=False) -> None:
+    def end_game(self, won: bool = False) -> None:
         """
         Ends blind
 

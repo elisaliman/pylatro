@@ -13,6 +13,7 @@ if TYPE_CHECKING:
 MAX_DT: float = 0.15
 BUTTON_COOLDOWN: float = 0.5
 
+
 class Game:
     deck: list["Card"]
     cards: "CardGroup"

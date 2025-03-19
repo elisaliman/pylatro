@@ -13,8 +13,10 @@ from states.blind_gameplay import Gameplay
 from states.statebase import StateBase
 from enums import HandType
 
+
 class BlindSelect(StateBase):
     """Game state for selecting blinds"""
+
     buttons: pygame.sprite.OrderedUpdates
     manager: GameManagerLogic
     side_panel: SidePanel
@@ -23,7 +25,7 @@ class BlindSelect(StateBase):
         super().__init__(game)
         self.manager = self.ctx["manager"]
         self.side_panel = SidePanel(self.pause, self.game.screen, self.manager)
-        self.blinds = self.manager.blinds[:-4: -1]
+        self.blinds = self.manager.blinds[:-4:-1]
         self._create_buttons()
 
     def pause(self) -> None:
@@ -73,5 +75,10 @@ class BlindSelect(StateBase):
         screen.fill("darkgreen")
         self.buttons.draw(screen)
         self.side_panel.draw(screen)
-        self.draw_text(f"Score at least: {self.blinds[0]}", self.font24, (400,150), pygame.Color("white"))
+        self.draw_text(
+            f"Score at least: {self.blinds[0]}",
+            self.font24,
+            (400, 150),
+            pygame.Color("white"),
+        )
         pygame.display.flip()

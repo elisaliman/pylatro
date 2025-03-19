@@ -17,7 +17,9 @@ class Title(StateBase):
         self.title = self.font200.render("Balatro", True, "blue")
         self.rect = pygame.Rect(0, 0, 800, 400)
         self.rect.center = self.screen_center
-        self.ctx = {"manager": GameManagerLogic()} ###TODO: this means everytime the title screen is created, a new "Profile" is made
+        self.ctx = {
+            "manager": GameManagerLogic()
+        }  ###TODO: this means everytime the title screen is created, a new "Profile" is made
 
     def handle_event(self, event: pygame.event.Event) -> None:
         """
