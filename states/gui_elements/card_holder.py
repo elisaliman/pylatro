@@ -1,16 +1,16 @@
-from typing import override
-
 import pygame
 
-from states.gui_elements.card import CARD_HEI, CARD_WID, Card, CardGroup
+from states.gui_elements.card import CARD_HEI, CARD_WID, Card, Joker, CardGroup, Alpha
+
+from typing import Generic
 
 
-class CardHolder(pygame.sprite.Sprite):
+class CardHolder(pygame.sprite.Sprite, Generic[Alpha]):
     w: int
     h: int
     image: pygame.surface.Surface
     rect: pygame.Rect
-    cards: CardGroup
+    cards: CardGroup[Alpha]
     num_slots: int
     pos: tuple[int, int]
     text_pos: tuple[int, int]
@@ -30,7 +30,7 @@ class CardHolder(pygame.sprite.Sprite):
         )
         self.rect = self.image.get_rect()
         self.rect.center = center_pos
-        self.cards = CardGroup()
+        self.cards = CardGroup[Alpha]()
         self.num_slots = num_slots
         self.set_text(text_side)
 
@@ -62,11 +62,11 @@ class CardHolder(pygame.sprite.Sprite):
         screen.blit(self.image, self.rect.topleft)
         screen.blit(self.text_image, self.text_pos)
 
-    def add_card(self, card: Card) -> None:
+    def add_card(self, card: Alpha) -> None:
         """
         Adds card to card holder
         """
-        assert isinstance(card, Card)
+        assert isinstance(card, Card) or isinstance(card, Joker)
         if card not in self.cards.sprites():
             card_idx = len(self.cards.sprites())
             x = self.rect.x + (card_idx * CARD_WID) + CARD_WID // 2
@@ -82,8 +82,10 @@ class CardHolder(pygame.sprite.Sprite):
 
     def update(self, dt: float, ctx: int | None = None) -> None:
         """
-        Updates card count text
+        Updates cards and card count text
         """
+        for card in self.cards.sprites():
+            card.update(dt)
         count = 0
         for card in self.cards.sprites():
             if self.rect.collidepoint(card.target_pos):

@@ -3,11 +3,12 @@ import copy
 
 import pygame
 
+from typing import cast
 from assets.balatro_cards_data import CARD_HEI, CARD_WID
 from state_logic.carddata import CardData
 from state_logic.blind_logic import BlindLogic
 from states.gui_elements.button import Button
-from states.gui_elements.card import Card
+from states.gui_elements.card import Card, Joker, GUICardBase
 from states.gui_elements.card_holder import CardHolder, DeckHolder
 from states.pause import Pause
 from states.statebase import StateBase
@@ -23,18 +24,18 @@ BUTTON_COOLDOWN: float = 0.5
 class Gameplay(StateBase):
     game_logic: BlindLogic
     buttons: pygame.sprite.OrderedUpdates
-    hand: CardHolder
+    jokers: CardHolder[Joker]
+    hand: CardHolder[Card]
     hand_ordered: list[Card]
     deck: DeckHolder
     sort_by_rank: bool
-    held_card: Card | None
+    held_card: GUICardBase | None
     mouse_down_timer: float | None
     scoring_animation: ScoreAnimation | None
     side_panel: SidePanel
-    jokers: CardHolder
     last_button_click_time: float  # Safety measure to prevent duplicate clicks
 
-    def __init__(self, game, side_panel: SidePanel):
+    def __init__(self, game, side_panel: SidePanel, jokers: CardHolder):
         super().__init__(game)
         # Initializes game logic and adds current game logic to side panel
         manager = self.ctx["manager"]
@@ -44,8 +45,9 @@ class Gameplay(StateBase):
         screen_w, screen_h = self.game.screen.get_size()
         x = screen_w // 2
         y = screen_h - 2 * CARD_HEI
-        self.hand = CardHolder(CARD_WID * 8, (x, y), 8, "center")
+        self.hand = CardHolder[Card](CARD_WID * 8, (x, y), 8, "center")
         self.hand_ordered = []
+        self.jokers = jokers
         x += int(CARD_WID * 4.5) + CARD_WID * 2
         self.deck = DeckHolder(CARD_WID, (x, y + 30), len(self.game_logic.deck), "left")
         temp = copy.deepcopy(self.game_logic.deck[-1])
@@ -152,8 +154,14 @@ class Gameplay(StateBase):
             pos_x (int): x coord of the mouse when card is dropped
         """
         assert self.held_card
-        hand = self.hand_ordered
-        og_idx: int = hand.index(self.held_card)
+        hand: list[GUICardBase]
+        if isinstance(self.held_card, Card):
+            hand = cast(list[GUICardBase], self.hand_ordered)
+        elif isinstance(self.held_card, Joker):
+            hand = cast(list[GUICardBase], self.jokers.cards.sprites())
+        else:
+            raise ValueError("No Card Holders to sort")
+        og_idx = hand.index(self.held_card)
         new_idx: int | None = None
         if pos_x < hand[0].rect.centerx and self.held_card is not hand[0]:
             new_idx = 0
@@ -172,12 +180,12 @@ class Gameplay(StateBase):
                     break
         if new_idx is None:
             return
-        self.game_logic.sort_cards_custom(og_idx, new_idx)
 
-        popped = hand.pop(og_idx)
-        hand.insert(new_idx, popped)
-        self.hand_ordered = hand
-        self._sort_adjust_pos(hand)
+        hand.insert(new_idx, hand.pop(og_idx))
+        if isinstance(self.held_card, Card):
+            self.game_logic.sort_cards_custom(og_idx, new_idx)
+            self.hand_ordered = cast(list[Card], hand)
+            self._sort_adjust_pos(cast(list[Card], hand))
 
     def _sort_adjust_pos(self, hand: list[Card]) -> None:
         """
@@ -232,7 +240,6 @@ class Gameplay(StateBase):
             start_x = get_play_anim_start_x(self.game.screen, len(played_card_datas))
             played: list[Card] = []
             for card in self.hand_ordered:
-                assert isinstance(card, Card)
                 card_data = self.convert_to_card_data(card)
                 if card_data in played_card_datas and card.selected:
                     card.set_target_pos((start_x, screen_h // 2))
@@ -287,21 +294,26 @@ class Gameplay(StateBase):
                     button.callback()
                     return
             # Reversed to scan cards from top layer to bottom
-            for card in self.hand.cards.sprites()[::-1]:
-                if not self.scoring_animation and card.rect.collidepoint(event.pos):
-                    self.mouse_down_timer = time.time()
-                    self.held_card = card
-                    return
+            for card_holder in [self.hand, self.jokers]:
+                assert isinstance(card_holder, CardHolder)
+                for card in card_holder.cards.sprites()[::-1]:
+                    if not self.scoring_animation and card.rect.collidepoint(event.pos):
+                        self.mouse_down_timer = time.time()
+                        self.held_card = card
+                        return
 
         if event.type == pygame.MOUSEBUTTONUP:
             if self.mouse_down_timer is not None:
                 elapsed_time = time.time() - self.mouse_down_timer
-                if elapsed_time < DRAG_THRESHOLD and self.held_card:
+                if elapsed_time < DRAG_THRESHOLD and isinstance(self.held_card, Card):
                     self.select_card(self.held_card)
             if self.held_card and self.held_card.follow_mouse:
                 dropped_x = event.pos[0]
                 self.sort_by_custom(dropped_x)
-                self.hand.cards.move_to_top(self.held_card)
+                if isinstance(self.held_card, Card):
+                    self.hand.cards.move_to_top(self.held_card)
+                elif isinstance(self.held_card, Joker):
+                    self.jokers.cards.move_to_top(self.held_card)
                 self.held_card.toggle_mouse_follow()
             self.held_card = None
 
@@ -356,9 +368,8 @@ class Gameplay(StateBase):
         for button in self.buttons.sprites():
             if isinstance(button, Button):
                 button.update(dt)
-        for card in self.hand.cards.sprites():
-            card.update(dt)
         self.hand.update(dt)
+        self.jokers.update(dt)
         self.deck.update(dt, self.game_logic.deck_remaining)
         if self.scoring_animation is not None:
             self.scoring_animation.update(dt)
@@ -373,6 +384,7 @@ class Gameplay(StateBase):
     def draw(self, screen: pygame.surface.Surface) -> None:
         screen.fill("darkgreen")
         self.hand.draw(screen)
+        self.jokers.draw(screen)
         self.deck.draw(screen)
         if self.game_logic.deck:
             self.deck.cards.draw_cards(screen)
@@ -381,5 +393,6 @@ class Gameplay(StateBase):
             self.scoring_animation.draw(screen)
         self.side_panel.draw(screen)
         self.hand.cards.draw_cards(screen)
+        self.jokers.cards.draw_cards(screen)
         if self.held_card:
             self.held_card.draw(screen)

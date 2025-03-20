@@ -2,39 +2,31 @@ import pygame
 
 import assets.balatro_cards_data as assets
 from assets.balatro_cards_data import CARD_HEI, CARD_WID
+from typing import Generic, TypeVar
 from enums import Rank, Suit
 
 CARD_WID = 71
 CARD_HEI = 95
 
+class GUICardBase(pygame.sprite.Sprite):
 
-class Card(pygame.sprite.Sprite):
-    image: pygame.Surface
+    image: pygame.surface.Surface
     rect: pygame.Rect
-    suit: Suit
-    rank: Rank
     front: pygame.surface.Surface
     back: pygame.surface.Surface
     shown: bool
     target_pos: tuple[int, int]
     follow_mouse: bool
-    selected: bool
-    chips: int
-    mult: int
 
     def __init__(
         self,
-        suit: Suit,
-        rank: Rank,
-        chips: int,
         pos: tuple[int, int],
+        front: pygame.surface.Surface,
+        back: pygame.surface.Surface,
         shown: bool = True,
         *groups: pygame.sprite.OrderedUpdates,
     ):
         super().__init__(*groups)
-        self.suit = suit
-        self.rank = rank
-        self.chips = chips
         self.image = pygame.Surface((CARD_WID, CARD_HEI), pygame.SRCALPHA)
         self.image.fill((0, 0, 0, 0))
         wid, hei = self.image.get_size()[0], self.image.get_size()[1]
@@ -45,13 +37,12 @@ class Card(pygame.sprite.Sprite):
         pygame.draw.rect(
             self.image, pygame.Color("grey70"), card_image, width=1, border_radius=7
         )
-        self.front = assets.get_cardf_sprite(self.suit, self.rank)
-        self.back = assets.get_cardb_sprite()
+        self.front = front
+        self.back = back
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.target_pos = pos
         self.follow_mouse = False
-        self.selected = False
         self.shown = not shown
         self.toggle_show()
 
@@ -77,13 +68,6 @@ class Card(pygame.sprite.Sprite):
     def toggle_mouse_follow(self) -> None:
         self.follow_mouse = not self.follow_mouse
 
-    def toggle_select(self) -> None:
-        self.selected = not self.selected
-        offset: int = 35
-        if self.selected:
-            self.set_target_pos((self.rect.centerx, self.rect.centery - offset))
-        else:
-            self.set_target_pos((self.rect.centerx, self.rect.centery + offset))
 
     def draw(self, screen: pygame.surface.Surface) -> None:
         """
@@ -149,6 +133,54 @@ class Card(pygame.sprite.Sprite):
         """
         self.target_pos = pos
 
+
+Alpha = TypeVar('Alpha', bound=GUICardBase)
+
+class Joker(GUICardBase):
+    def __init__(self, name: str, pos: tuple[int, int], shown: bool = True, *groups):
+        self.name = name
+        front, back = assets.get_joker_sprites()
+        super().__init__(pos, front, back, shown, *groups)
+
+    def __repr__(self):
+        return f"Joker: {self.name.capitalize()}"
+
+
+class Card(GUICardBase):
+    suit: Suit
+    rank: Rank
+    front: pygame.surface.Surface
+    back: pygame.surface.Surface
+    selected: bool
+    chips: int
+    mult: int
+
+    def __init__(
+        self,
+        suit: Suit,
+        rank: Rank,
+        chips: int,
+        pos: tuple[int, int],
+        shown: bool = True,
+        *groups: pygame.sprite.OrderedUpdates,
+    ):
+        self.suit = suit
+        self.rank = rank
+        self.chips = chips
+        self.selected = False
+        front = assets.get_cardf_sprite(self.suit, self.rank)
+        back = assets.get_cardb_sprite()
+        super().__init__(pos, front, back, shown, *groups)
+
+
+    def toggle_select(self) -> None:
+        self.selected = not self.selected
+        offset: int = 35
+        if self.selected:
+            self.set_target_pos((self.rect.centerx, self.rect.centery - offset))
+        else:
+            self.set_target_pos((self.rect.centerx, self.rect.centery + offset))
+
     def __repr__(self):
         return f"Card: {self.rank.name.capitalize()} of {self.suit.name.capitalize()}s"
 
@@ -164,14 +196,13 @@ class Card(pygame.sprite.Sprite):
         """
         return hash((self.suit, self.rank))
 
-
-class CardGroup(pygame.sprite.OrderedUpdates):
+class CardGroup(pygame.sprite.OrderedUpdates, Generic[Alpha]):
     """
     pygame Group class that allows extra functionality
     """
 
     # Only reason for this overwrite is to enforce return type of Card for mypy
-    def sprites(self) -> list[Card]:
+    def sprites(self) -> list[Alpha]:
         return super().sprites()
 
     def draw_cards(self, screen: pygame.surface.Surface) -> None:
@@ -179,13 +210,13 @@ class CardGroup(pygame.sprite.OrderedUpdates):
         for card in self.sprites():
             card.draw(screen)
 
-    def move_to_top(self, card: Card) -> None:
+    def move_to_top(self, card: Alpha) -> None:
         """Moves card to top (Drawn last)"""
         if card in self.sprites():
             self.remove(card)
             self.add(card)
 
-    def move_to_bottom(self, card: Card) -> None:
+    def move_to_bottom(self, card: Alpha) -> None:
         """Moves card to bottom (Drawn first)"""
         if card in self.sprites():
             self.remove(card)

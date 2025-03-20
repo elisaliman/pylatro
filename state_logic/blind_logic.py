@@ -171,7 +171,7 @@ class BlindLogic:
                 if joker.ability_type == "chip":
                     chips = joker.ability(chips)
                 elif joker.ability_type == "mult":
-                    base_mult = joker.ability(mult)
+                    mult = joker.ability(mult)
         ###
         # Stand in for mult system. Will need to implement hand levels system
         # with unique base mults and chips. Will also have to implement joker

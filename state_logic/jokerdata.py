@@ -22,16 +22,35 @@ class JokerData(CardDataBase):
     def __repr__(self):
         return f"JokerData: {self.name}"
 
+def create_add_x(x: int) -> Callable[[int], int]:
+    def add_x(num: int) -> int:
+        return num + x
+    return add_x
+
+def create_test_hand(handtype: HandType) -> Callable[[list[CardData]], bool]:
+    test_functions: dict[HandType, Callable[[list[CardData]], bool]] = {
+        HandType.PAIR: lambda hand: bool(get_n_of_a_kind(hand, 2)),
+        HandType.THREE: lambda hand: bool(get_n_of_a_kind(hand, 3)),
+        HandType.TWOPAIR: lambda hand: bool(get_n_of_a_kind(hand, 2)) and len(hand) == 4,
+        HandType.STRAIGHT: lambda hand: bool(get_straight(hand)),
+        HandType.FLUSH: lambda hand: bool(get_flush(hand))
+    }
+    try:
+        return test_functions[handtype]
+    except KeyError:
+        raise ValueError(f"Error: Passed bad hand type: {handtype}")
+
+
 def generate_jokers() -> list[JokerData]:
-    sly = JokerData("Sly Joker", 3, lambda c: c + 50, "chip", hand_condition=lambda hand: bool(get_n_of_a_kind(hand, 2)))
-    wily = JokerData("Wily Joker", 3, lambda c: c + 100, "chip", hand_condition=lambda hand: bool(get_n_of_a_kind(hand, 3)))
-    clever = JokerData("Clever Joker", 4, lambda c: c + 80, "chip", hand_condition=lambda hand: bool(get_n_of_a_kind(hand, 2) and len(hand)==4))
-    dev = JokerData("Devious Joker", 4, lambda c: c + 100, "chip", hand_condition=lambda hand: bool(get_straight(hand)))
-    crafty = JokerData("Crafty Joker", 4, lambda c: c + 80, "chip", hand_condition=lambda hand: bool(get_flush(hand)))
-    jolly = JokerData("Jolly Joker", 3, lambda m: m + 8, "mult", hand_condition=lambda hand: bool(get_n_of_a_kind(hand, 2)))
-    zany = JokerData("Zany Joker", 4, lambda m: m + 12, "mult",hand_condition=lambda hand: bool(get_n_of_a_kind(hand, 3)))
-    mad = JokerData("Mad Joker", 4, lambda m: m + 10, "mult",hand_condition=lambda hand: bool(get_n_of_a_kind(hand, 2) and len(hand)==4))
-    crazy = JokerData("Crazy Joker", 4, lambda m: m + 12, "mult", hand_condition=lambda hand:bool(get_straight(hand)))
-    droll = JokerData("Droll Joker", 4, lambda m: m + 10, "mult", hand_condition=lambda hand: bool(get_flush(hand)))
+    sly = JokerData("Sly Joker", 3, create_add_x(50), "chip", create_test_hand(HandType.PAIR))
+    wily = JokerData("Wily Joker", 3, create_add_x(100), "chip", create_test_hand(HandType.THREE))
+    clever = JokerData("Clever Joker", 4, create_add_x(80), "chip", create_test_hand(HandType.TWOPAIR))
+    dev = JokerData("Devious Joker", 4, create_add_x(100), "chip", create_test_hand(HandType.STRAIGHT))
+    crafty = JokerData("Crafty Joker", 4, create_add_x(80), "chip", create_test_hand(HandType.FLUSH))
+    jolly = JokerData("Jolly Joker", 3, create_add_x(8), "mult", create_test_hand(HandType.PAIR))
+    zany = JokerData("Zany Joker", 4, create_add_x(12), "mult", create_test_hand(HandType.THREE))
+    mad = JokerData("Mad Joker", 4, create_add_x(10), "mult", create_test_hand(HandType.TWOPAIR))
+    crazy = JokerData("Crazy Joker", 4, create_add_x(12), "mult", create_test_hand(HandType.STRAIGHT))
+    droll = JokerData("Droll Joker", 4, create_add_x(10), "mult", create_test_hand(HandType.FLUSH))
     jokers = [sly, wily, clever, dev, crafty, jolly, zany, mad, crazy, droll]
     return jokers
