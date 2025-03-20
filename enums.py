@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, auto
 
 class Suit(Enum):
     # Ordered in order they appear in sprite sheet
@@ -46,3 +46,32 @@ class HandType(Enum):
     @property
     def name(self):
         return self.value[1]
+
+
+class AbilCategory(Enum):
+    INDIE = 0  # Abilities that trigger after all cards are scored.
+    ON_PLAYED = 1 # triggers when a card is played, before it's scored.
+    ON_SCORED = 2 # triggers when a card is scored.
+    ON_HELD = 3 # triggers when a card is held in hand.
+    ON_DISCARD = 4 # triggers on a discard.
+    PASSIVE = 5 #  dont trigger, but have a passive effect...
+
+class AbilType(Enum):
+    # Joker ability types
+    ADD_CHIPS = auto()
+    ADD_MULT = auto()
+
+class AbilityWhole():
+    type: list[AbilType]
+    category: list[AbilCategory]
+    def __init__(self, type: AbilType | list[AbilType], category: AbilCategory | list[AbilCategory]):
+        self.type = []
+        if isinstance(type, list):
+            self.type.extend(type)
+        else:
+            self.type.append(type)
+        self.category = []
+        if isinstance(category, list):
+            self.category.extend(category)
+        else:
+            self.category.append(category)

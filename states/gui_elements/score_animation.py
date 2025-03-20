@@ -1,8 +1,9 @@
 import time
 import pygame
-from states.gui_elements.card import Card, CARD_WID, CARD_HEI
+from states.gui_elements.card import Card, Joker, CARD_WID, CARD_HEI
 from states.gui_elements.side_panel import SidePanel
 from utils import get_play_anim_start_x
+from enums import AbilCategory
 
 ANIMATION_START_DELAY = 0.7
 
@@ -18,6 +19,7 @@ class ScoreAnimation:
     card_display_timer: float
     completion_delay_timer: float | None
     playing: bool
+    joker_anim: bool | None
 
     def __init__(
         self,
@@ -25,8 +27,10 @@ class ScoreAnimation:
         current: int,
         scores: tuple[int, int, int],
         cards: list[Card],
+        jokers: list[Joker]
     ):
-        """Initialize the animation with target score and card point breakdown."""
+        """Initialize animation with target score and card point breakdown."""
+        self.jokers = jokers
         self.side_panel = side_panel
         self.final_score, self.chips, self.mult = scores  # Target score to reach
         self.card_points = [
@@ -48,6 +52,7 @@ class ScoreAnimation:
         self.card_display_timer = time.time()  # Time tracker for card animation
         self.completion_delay_timer = None  # Timer for post animation delay
         self.playing = True  # Is animation running?
+        self.joker_anim = None
 
     def update(self, dt: float):
         """Update the animation frame by frame."""
@@ -74,18 +79,22 @@ class ScoreAnimation:
                     self.chips += self.card_points[self.current_card_index - 1]
                     self.card_display_timer = time.time()
 
+            # Animate Jokers that activate after all cards score
+            if self.current_card_index == len(self.card_points):
+                indies = [joker for joker in self.jokers if AbilCategory.INDIE in joker.jokerdata.ability_category]
+                for joker in indies:
+                    if joker.jokerdata.scored:
+                        if self.joker_anim is None or self.joker_anim == True:
+                            self.joker_anim = joker.score_anim()
+
             # Stop animation when displayed score reaches final score
-            if (
-                self.displayed_score >= self.final_score
+            if (self.displayed_score >= self.final_score
                 and self.current_card_index == len(self.card_points)
-                and not self.completion_delay_timer
-            ):
+                and not self.completion_delay_timer):
                 self.completion_delay_timer = time.time()
-            if (
-                self.completion_delay_timer
-                and time.time() - self.completion_delay_timer > 1
-            ):
-                self.playing = False  # Mark animation as complete
+            if (self.completion_delay_timer
+                and time.time() - self.completion_delay_timer > 1):
+                self.playing = False
 
     def draw(self, screen: pygame.surface.Surface):
         """Draw the animation elements."""

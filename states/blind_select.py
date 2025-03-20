@@ -31,6 +31,15 @@ class BlindSelect(StateBase):
         self.jokers = CardHolder[Joker](CARD_WID * 5, joker_pos, 5, "left")
         self.blinds = self.manager.blinds[:-4:-1]
         self._create_buttons()
+        self._misc_create_jokers()
+
+    def _misc_create_jokers(self):
+        """
+        ONLY FOR TESTING, WILL NOT BE USED ONCE SHOP IS ADDED!!!
+        """
+        for jokerdata in self.manager.held_jokers:
+            joker = Joker(jokerdata, (500, 100))
+            self.jokers.add_card(joker)
 
     def pause(self) -> None:
         Pause(self.game)

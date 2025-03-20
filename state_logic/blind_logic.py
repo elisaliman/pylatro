@@ -2,7 +2,7 @@ import random
 import copy
 
 import state_logic.poker_hand_type as pk
-from enums import HandType, Rank, Suit
+from enums import HandType, Rank, Suit, AbilCategory, AbilType
 from state_logic.carddata import CardData
 from state_logic.jokerdata import JokerData
 from state_logic.game_manager import GameManagerLogic
@@ -166,15 +166,17 @@ class BlindLogic:
             if card.edition:
                 pass #TODO: Handle edition
 
-        for joker in self.jokers: # Scoring for independent joker triggers
+        # Scoring for independent joker triggers
+        indies = [joker for joker in self.jokers if AbilCategory.INDIE in joker.ability_category]
+        for joker in indies:
             if joker.hand_condition and joker.hand_condition(valid_cards):
-                if joker.ability_type == "chip":
+                joker.scored = True
+                if AbilType.ADD_CHIPS in joker.ability_type:
                     chips = joker.ability(chips)
-                elif joker.ability_type == "mult":
+                elif AbilType.ADD_MULT in joker.ability_type:
                     mult = joker.ability(mult)
         ###
-        # Stand in for mult system. Will need to implement hand levels system
-        # with unique base mults and chips. Will also have to implement joker
+        # Stand in for mult system. Will also have to implement joker
         # system here i think.
         ###
         self.score += chips * mult

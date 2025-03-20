@@ -1,7 +1,9 @@
 import pygame
 
+import time
 import assets.balatro_cards_data as assets
 from assets.balatro_cards_data import CARD_HEI, CARD_WID
+from state_logic.jokerdata import JokerData
 from typing import Generic, TypeVar
 from enums import Rank, Suit
 
@@ -137,10 +139,43 @@ class GUICardBase(pygame.sprite.Sprite):
 Alpha = TypeVar('Alpha', bound=GUICardBase)
 
 class Joker(GUICardBase):
-    def __init__(self, name: str, pos: tuple[int, int], shown: bool = True, *groups):
-        self.name = name
+    anim_start_time: float | None
+
+    def __init__(self, jokerdata: JokerData, pos: tuple[int, int], shown: bool = True, *groups):
+        self.name = jokerdata.name
+        self.jokerdata = jokerdata
+        self.anim_start_time = None
         front, back = assets.get_joker_sprites()
         super().__init__(pos, front, back, shown, *groups)
+        self.width, self.height = self.rect.size
+
+
+    def score_anim(self) -> bool:
+        if self.anim_start_time is None:
+            self.anim_start_time = time.time()
+        print("animating")
+        duration = 0.5
+        current_time = time.time()
+        elapsed_time = current_time - self.anim_start_time
+        print(elapsed_time)
+
+
+        if elapsed_time < duration:
+            # Calculate scale factor as a function of time
+            scale_factor = ((elapsed_time - duration) / duration)  # Scales up initially
+        elif elapsed_time < duration * 2:
+            # Scale factor should decrease after max size is reached
+            scale_factor = 1 - ((elapsed_time - duration) / duration)
+        else:
+            # Reset the card to its original size after animation ends
+            self.rect.width = self.width
+            self.rect.height = self.height
+            self.anim_start_time = None
+            return False
+
+        # Apply the scale factor
+        self.rect = self.rect.scale_by(1 * scale_factor, 1 * scale_factor)
+        return True
 
     def __repr__(self):
         return f"Joker: {self.name.capitalize()}"

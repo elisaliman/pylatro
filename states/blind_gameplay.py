@@ -246,7 +246,7 @@ class Gameplay(StateBase):
                     start_x += card.rect.w + 30  # SPACING
                     played.append(card)
             self.scoring_animation = ScoreAnimation(
-                self.side_panel, self.side_panel.score, score, played
+                self.side_panel, self.side_panel.score, score, played, self.jokers.cards.sprites()
             )
 
     def discard(self, just_played: bool = False) -> None:
@@ -374,6 +374,8 @@ class Gameplay(StateBase):
         if self.scoring_animation is not None:
             self.scoring_animation.update(dt)
             if self.scoring_animation.is_done():
+                for joker in self.jokers.cards.sprites():
+                    joker.jokerdata.scored = False
                 self.scoring_animation = None
                 self.side_panel.set_played_score()
                 self.side_panel.update_hand_type(HandType.EMPTY)

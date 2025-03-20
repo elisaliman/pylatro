@@ -66,7 +66,7 @@ class GameManagerLogic:
     def __init__(self):
         self.deck = generate_deck()
         self.all_jokers = generate_jokers()
-        self.held_jokers = []
+        self.held_jokers = [] + self.all_jokers[:3] ###TEMPORARY FOR TESTING JOKERS
         self.levels = create_levels()
         self.blinds = [600, 450, 300]
         self.round = 0
