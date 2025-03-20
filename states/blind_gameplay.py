@@ -20,16 +20,6 @@ DRAG_THRESHOLD = 0.25
 BUTTON_COOLDOWN: float = 0.5
 
 
-def generate_deck(deck_data: list[CardData]) -> list[Card]:
-    deck = []
-    for card_data in deck_data:
-        suit = card_data.get_suit
-        rank = card_data.get_rank
-        card = Card(suit, rank, card_data.chips, (1000, 400))
-        deck.append(card)
-    return deck
-
-
 class Gameplay(StateBase):
     game_logic: BlindLogic
     buttons: pygame.sprite.OrderedUpdates
@@ -41,6 +31,7 @@ class Gameplay(StateBase):
     mouse_down_timer: float | None
     scoring_animation: ScoreAnimation | None
     side_panel: SidePanel
+    jokers: CardHolder
     last_button_click_time: float  # Safety measure to prevent duplicate clicks
 
     def __init__(self, game, side_panel: SidePanel):
@@ -209,20 +200,24 @@ class Gameplay(StateBase):
         """
         Deals cards from deck into hand
         """
-        hand_num_empty = self.game_logic.hand_size - len(self.game_logic.hand)
-        self.game_logic.deal_to_hand()
-        if hand_num_empty != 0:
-            for card_data in self.game_logic.hand[-hand_num_empty:]:
-                card = Card(
-                    card_data.get_suit,
-                    card_data.get_rank,
-                    card_data.chips,
-                    self.deck.rect.center,
-                )  # places center of deck 1.5 card_h above bottom of screen
-                self.hand.add_card(card)
-            self.sort_cards()
+        if not self.game_logic.done:
+            hand_num_empty = self.game_logic.hand_size - len(self.game_logic.hand)
+            self.game_logic.deal_to_hand()
+            if hand_num_empty != 0:
+                for card_data in self.game_logic.hand[-hand_num_empty:]:
+                    card = Card(
+                        card_data.get_suit,
+                        card_data.get_rank,
+                        card_data.chips,
+                        self.deck.rect.center,
+                    )  # places center of deck 1.5 card_h above bottom of screen
+                    self.hand.add_card(card)
+                self.sort_cards()
 
     def play_hand(self) -> None:
+        """
+        Plays hand
+        """
         current_time = time.time()
         if (
             self.game_logic.num_selected() > 0
@@ -257,8 +252,8 @@ class Gameplay(StateBase):
                 cards from hand
         """
         if (
-            self.game_logic.num_selected() > 0
-            and self.game_logic.num_discards > 0
+            (just_played or self.game_logic.num_discards > 0)
+            and self.game_logic.num_selected() > 0
             and not self.scoring_animation
         ):
             self.game_logic.discard(just_played)
@@ -386,11 +381,5 @@ class Gameplay(StateBase):
             self.scoring_animation.draw(screen)
         self.side_panel.draw(screen)
         self.hand.cards.draw_cards(screen)
-        self.draw_text(
-            f"Score at least: {self.game_logic.blind}",
-            self.font24,
-            (100, 200),
-            pygame.Color("crimson"),
-        )
         if self.held_card:
             self.held_card.draw(screen)

@@ -1,18 +1,30 @@
 from enums import Rank, Suit
+from typing import Callable
 
 
-class CardData:
+class CardDataBase:
+    edition: str | None # To be replaced by enums probably
+
+    def __init__(self):
+        self.edition = None
+
+class CardData(CardDataBase):
     suit: Suit
     rank: Rank
     chips: int
     mult: int
     selected: bool
+    seal: str | None # To be replaced by enums probably
+    enhances: str | None # To be replaced by enums probably
 
     def __init__(self, suit: Suit, rank: Rank):
+        super().__init__()
         self._suit = suit
         self._rank = rank
         self.chips = min(self._rank.value + 2, 10) if self._rank != Rank.ACE else 11
         self.selected = False
+        self.enhances = None
+        self.seal = None
 
     @property
     def get_suit(self) -> Suit:

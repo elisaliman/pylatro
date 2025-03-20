@@ -1,5 +1,6 @@
 import random
 from state_logic.carddata import CardData
+from state_logic.jokerdata import JokerData, generate_jokers
 from enums import Rank, Suit, HandType
 
 
@@ -42,7 +43,6 @@ def create_levels() -> dict[HandType, dict[str, int]]:
     }
     return levels
 
-
 # def create_blinds() -> list[tuple[int, str]]:
 #     pass
 
@@ -55,6 +55,8 @@ class GameManagerLogic:
     """
 
     deck: list["CardData"]  # Stores sorted game deck. (To be shuffled on gameplay)
+    all_jokers: list["JokerData"]
+    held_jokers: list["JokerData"]
     levels: dict[HandType, dict[str, int]]  # Hand levels and score
     blinds: list[int]
     round: int
@@ -63,6 +65,8 @@ class GameManagerLogic:
 
     def __init__(self):
         self.deck = generate_deck()
+        self.all_jokers = generate_jokers()
+        self.held_jokers = []
         self.levels = create_levels()
         self.blinds = [600, 450, 300]
         self.round = 0

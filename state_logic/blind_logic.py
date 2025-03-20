@@ -4,6 +4,7 @@ import copy
 import state_logic.poker_hand_type as pk
 from enums import HandType, Rank, Suit
 from state_logic.carddata import CardData
+from state_logic.jokerdata import JokerData
 from state_logic.game_manager import GameManagerLogic
 
 
@@ -30,9 +31,9 @@ class BlindLogic:
     manager: GameManagerLogic
     done: bool
     deck: list[CardData]
+    jokers: list[JokerData]
     hand: list[CardData]
     played: list[CardData]
-    jokers: list[CardData]
     hand_size: int
     _num_hands: int
     _num_discards: int
@@ -43,14 +44,14 @@ class BlindLogic:
         self.manager = manager
         self.deck = copy.deepcopy(manager.deck)
         random.shuffle(self.deck)
+        self.jokers = manager.held_jokers
         self.blind = self.manager.blinds.pop()
         self.deck_total = len(self.deck)
         self.hand = []
         self.played = []
-        self.jokers = []
         self.hand_size = 8
         self._num_hands = 4
-        self._num_discards = 30
+        self._num_discards = 4
         self.score = 0
 
     @property
@@ -85,6 +86,9 @@ class BlindLogic:
             )
 
     def sort_cards_custom(self, og_idx: int, new_idx: int) -> None:
+        """
+        Moves a card in hand from one index to another
+        """
         popped = self.hand.pop(og_idx)
         self.hand.insert(new_idx, popped)
 
@@ -153,15 +157,27 @@ class BlindLogic:
         valid_cards = [card for card in self.played if card in valid_cards]
         base_chips = self.manager.levels[hand_type]["chips"]
         base_mult = self.manager.levels[hand_type]["mult"]
+        mult = base_mult
         chips = base_chips
         for card in valid_cards:
             chips += card.chips
+            if card.enhances:
+                pass #TODO: Handle enhancement
+            if card.edition:
+                pass #TODO: Handle edition
+
+        for joker in self.jokers: # Scoring for independent joker triggers
+            if joker.hand_condition and joker.hand_condition(valid_cards):
+                if joker.ability_type == "chip":
+                    chips = joker.ability(chips)
+                elif joker.ability_type == "mult":
+                    base_mult = joker.ability(mult)
         ###
         # Stand in for mult system. Will need to implement hand levels system
         # with unique base mults and chips. Will also have to implement joker
         # system here i think.
         ###
-        self.score += chips * base_mult
+        self.score += chips * mult
         self._num_hands -= 1
         self.played.clear()
         if self.score >= self.blind:
@@ -178,16 +194,15 @@ class BlindLogic:
 
         Args:
             just_played (bool, optional): if true, wont deduct a discard as
-                it means the fucntion was called to rid the played cards, not
-                cards from hand
+                it means the fucntion was called to rid the played cards.
         """
-        if self.num_selected() <= 0:
-            raise ValueError(f"Must have at least one card selected!")
-        if self._num_discards <= 0:
-            raise ValueError(f"Cannot discard! No Discards left! {self._num_discards=}")
-        self.hand = [card for card in self.hand if not card.selected]
-        if not just_played:
+        if not just_played: # I use this function to also clear played hands
+            if self.num_selected() <= 0:
+                raise ValueError(f"Must have at least one card selected!")
+            if self._num_discards <= 0:
+                raise ValueError(f"Cannot discard! No Discards left! {self._num_discards=}")
             self._num_discards -= 1
+        self.hand = [card for card in self.hand if not card.selected]
         # Should almost always call self.deal_to_hand() afterwards
 
     def end_game(self, won: bool = False) -> None:

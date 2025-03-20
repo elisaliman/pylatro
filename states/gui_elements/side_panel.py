@@ -69,6 +69,7 @@ class SidePanel:
         color: str,
         scale: tuple[float, float] = (1, 1),
         text: str | None = None,
+        txt_color: str = "white",
         has_small_box: bool = True,
     ) -> None:
         num_image = self.font24.render(num, True, pygame.Color(color))
@@ -77,10 +78,11 @@ class SidePanel:
         box.center = pos
         pygame.draw.rect(screen, pygame.Color("grey10"), box, border_radius=5)
         if text:
-            text_image = self.font10.render(text, True, pygame.Color("white"))
+            text_color = pygame.Color(txt_color)
+            text_image = self.font10.render(text, True, text_color)
             text_size_x, text_size_y = text_image.get_size()
             if has_small_box:
-                small_box = box.scale_by(0.85, 0.6)
+                small_box = box.scale_by(0.85, 0.65)
                 small_box.center = box.centerx, box.centery + text_size_y - 5
             screen.blit(text_image, (box.centerx - text_size_x // 2, box.y))
         else:
@@ -163,6 +165,16 @@ class SidePanel:
             str(self.num_discards),
             "crimson",
             text="Discards",
+        )
+        blind = self._blind_logic.blind if self._blind_logic else 0
+        self.draw_box(
+            screen,
+            (self.rect.centerx, 200),
+            f"{blind}",
+            "crimson",
+            text="Score At Least:",
+            txt_color="crimson",
+            scale=(3.1, 2),
         )
         self.draw_box(
             screen,
